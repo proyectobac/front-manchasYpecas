@@ -1,0 +1,231 @@
+/* src/assets/css/Sidebar.css */
+
+/* --- Variables de Color (Para un estilo más elegante) --- */
+:root {
+  --sidebar-bg: #ffffff;
+  --sidebar-text: #4a5568;
+  --sidebar-hover-bg: rgba(49, 130, 206, 0.1);
+  --sidebar-active-bg: rgba(49, 130, 206, 0.15);
+  --sidebar-active-text: #3182ce;
+  --sidebar-border: #edf2f7;
+  --sidebar-icon: #718096;
+  --sidebar-icon-active: #3182ce;
+  --sidebar-icon-size: 1.25rem;
+  --sidebar-subicon-size: 1rem;
+  --sidebar-width: 260px;
+}
+
+/* --- Contenedor Principal del Sidebar --- */
+.sidebar-container {
+  width: var(--sidebar-width);
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  background-color: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  transition: width 0.3s ease;
+}
+
+.main-content-area {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+/* --- Logo/Título --- */
+.sidebar-title {
+  padding: 1.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-bottom: 1px solid var(--sidebar-border);
+  margin-bottom: 1rem;
+}
+
+.sidebar-title img {
+  max-width: 80%;
+  max-height: 50px;
+  object-fit: contain;
+}
+
+.sidebar-title span {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--sidebar-active-text);
+}
+
+/* --- Navegación --- */
+.sidebar-nav {
+  flex-grow: 1;
+  padding: 0.5rem;
+}
+
+.sidebar-menu-item {
+  margin-bottom: 0.5rem;
+}
+
+/* --- Estilos Comunes Botón/Enlace (Más elegantes, sin bordes marcados) --- */
+.sidebar-button,
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  color: var(--sidebar-text);
+  box-sizing: border-box;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.sidebar-button {
+  justify-content: space-between;
+}
+
+.sidebar-button:focus,
+.sidebar-link:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.sidebar-button:focus-visible,
+.sidebar-link:focus-visible {
+  box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.4);
+}
+
+/* --- Estados Hover (Más sutiles) --- */
+.sidebar-button:hover,
+.sidebar-link:hover:not(.active) {
+  background-color: var(--sidebar-hover-bg);
+  color: var(--sidebar-active-text);
+}
+
+/* --- Estado Activo/Seleccionado (Solo iluminación de texto, sin bordes fuertes) --- */
+.sidebar-button.active {
+  background-color: var(--sidebar-hover-bg);
+  color: var(--sidebar-active-text);
+}
+
+.sidebar-link.active {
+  background-color: var(--sidebar-active-bg);
+  color: var(--sidebar-active-text);
+  font-weight: 500;
+}
+
+/* --- Contenido del Item (Icono + Texto) --- */
+.sidebar-item-content {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+}
+
+/* --- Iconos (Colores más elegantes) --- */
+.sidebar-icon,
+.sidebar-submenu-icon,
+.sidebar-arrow-icon {
+  flex-shrink: 0;
+  text-align: center;
+  color: var(--sidebar-icon);
+  transition: color 0.2s ease;
+}
+
+.sidebar-icon {
+  width: var(--sidebar-icon-size);
+  height: var(--sidebar-icon-size);
+  margin-right: 0.875rem;
+}
+
+.sidebar-submenu-icon {
+  width: var(--sidebar-subicon-size);
+  height: var(--sidebar-subicon-size);
+  margin-right: 0.75rem;
+}
+
+.sidebar-arrow-icon {
+  width: var(--sidebar-subicon-size);
+  height: var(--sidebar-subicon-size);
+  margin-left: 0.5rem;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+/* Cambio de color para iconos en estado activo */
+.sidebar-button.active .sidebar-icon,
+.sidebar-link.active .sidebar-icon,
+.sidebar-button.active .sidebar-arrow-icon,
+.sidebar-submenu-link.active .sidebar-submenu-icon {
+  color: var(--sidebar-icon-active);
+}
+
+/* --- Texto del Menú --- */
+.sidebar-item-name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Submenú (Estilo más limpio) --- */
+.sidebar-submenu {
+  padding-left: calc(var(--sidebar-icon-size) + 1rem + 0.875rem);
+  margin-top: 0.25rem;
+  background-color: rgba(247, 250, 252, 0.5);
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+.sidebar-submenu > * + * {
+  margin-top: 0.25rem;
+}
+
+.sidebar-submenu-link {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+  text-decoration: none;
+  color: var(--sidebar-text);
+  width: 100%;
+  box-sizing: border-box;
+  background: none;
+}
+
+.sidebar-submenu-link:hover:not(.active) {
+  background-color: var(--sidebar-hover-bg);
+  color: var(--sidebar-active-text);
+}
+
+.sidebar-submenu-link.active {
+  background-color: var(--sidebar-active-bg);
+  color: var(--sidebar-active-text);
+  font-weight: 500;
+}
+
+.sidebar-submenu-link span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Sección Inferior Opcional --- */
+.sidebar-footer {
+  margin-top: auto;
+  padding: 1rem;
+  border-top: 1px solid var(--sidebar-border);
+}
+

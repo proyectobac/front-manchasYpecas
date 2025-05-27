@@ -1,0 +1,250 @@
+/* --- Reset y Base --- */
+html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  *, *:before, *:after {
+    box-sizing: inherit;
+  }
+  
+  body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f0f2f5;
+  }
+  /* --- Contenedor Principal (Centrado) --- */
+  .login-page-container {
+    display: flex;
+    align-items: center;     /* Centra verticalmente */
+    justify-content: center; /* Centra horizontalmente */
+    min-height: 100vh;       /* Altura mínima = altura viewport */
+    width: 100%;             /* Ancho completo */
+    padding: 1rem;           /* Espacio por si el contenido es muy grande */
+  }
+  
+
+  /* --- Logo --- */
+.login-logo-container {
+  /* Añade esta línea para centrar el contenido (el logo) dentro de este div */
+  text-align: center;
+
+  /* Mantén o ajusta el margen inferior según necesites */
+  margin-bottom: 1rem;
+  line-height: 0; /* Ayuda a quitar espacio extra bajo la imagen */
+}
+
+.login-logo {
+  max-width: 200px; /* Ajusta el tamaño máximo como necesites */
+  height: auto;     /* Mantiene la proporción */
+  display: inline-block; /* Asegura que se comporte como inline para text-align */
+  vertical-align: middle; /* Buena práctica para alinear imágenes inline */
+}
+
+/* --- Tarjeta de Login (Ya tiene text-align: center, lo cual es bueno) --- */
+.login-card {
+    background-color: #ffffff;
+    padding: 1.5rem 2rem 2.5rem 2rem; /* Padding ajustado */
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    max-width: 420px;
+    width: 100%;
+    text-align: center; /* Mantiene el centrado general para otros elementos si es necesario */
+}
+
+/* ... Resto de tu CSS ... */
+
+/* --- Título --- */
+.login-title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+/* --- Mensaje de Error --- */
+.login-error-message {
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 0.8rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  text-align: left; /* El mensaje de error sí debe ir a la izquierda */
+  border: 1px solid #ef9a9a;
+}
+
+/* --- Formulario --- */
+.login-form {
+  width: 100%;
+}
+ 
+  
+  
+  
+  
+  /* --- Grupo Input (Label + Input + Icono) --- */
+  .form-group {
+    margin-bottom: 1.2rem;
+    text-align: left; /* Alinear label a la izquierda */
+  }
+  
+  .form-group label {
+    display: block;
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+  }
+  
+  /* Contenedor para Input + Iconos */
+  .input-wrapper {
+    position: relative;
+    width: 100%;
+  }
+  
+  /* Iconos dentro del Input */
+  .input-icon {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+    font-size: 1rem; /* Tamaño del icono */
+    pointer-events: none; /* Para que no interfiera con el click al input */
+  }
+  
+  .input-icon-left {
+    left: 12px; /* Espacio desde la izquierda */
+  }
+  
+  .input-icon-right {
+    right: 12px; /* Espacio desde la derecha */
+    pointer-events: auto; /* Permitir click en el icono del ojo */
+    cursor: pointer;
+  }
+  
+  /* Input de Texto/Password */
+  .input-field {
+    width: 100%;
+    padding: 0.8rem 1rem; /* Padding base */
+    padding-left: 3rem; /* Espacio extra para icono izquierdo */
+    padding-right: 3rem; /* Espacio extra para icono derecho (ojo) */
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    background-color: #f9fafb;
+    transition: border-color 0.2s ease;
+  }
+  
+  /* Solo añadir padding derecho si hay icono derecho */
+  .input-wrapper input:not(:placeholder-shown) ~ .input-icon-right, /* Si hay texto Y icono derecho */
+  .input-wrapper input:focus ~ .input-icon-right { /* Si hay foco Y icono derecho */
+      /* Asegurarnos que no se solape */
+  }
+  
+  /* Estilo de foco para el input */
+  .input-field:focus {
+    outline: none;
+    border-color: #6366f1; /* Color primario */
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); /* Sutil glow en foco */
+  }
+  
+  /* --- Botón Principal --- */
+  .login-submit-button {
+    width: 100%;
+    padding: 0.9rem;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6); /* Gradiente */
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1.5rem; /* Espacio antes del botón */
+    box-shadow: 0 4px 6px rgba(99, 102, 241, 0.2);
+  }
+  
+  .login-submit-button:hover {
+    opacity: 0.9;
+    box-shadow: 0 6px 8px rgba(99, 102, 241, 0.3);
+  }
+  
+  .login-submit-button:active {
+   transform: translateY(1px);
+  }
+  
+  
+  /* --- Opciones Secundarias --- */
+  .login-options {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-direction: column; /* Apilados */
+    align-items: center; /* Centrados */
+    gap: 0.8rem; /* Espacio entre ellos */
+  }
+  
+  .forgot-password-link {
+    color: #6366f1;
+    text-decoration: none;
+    font-size: 0.85rem;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+  
+  .forgot-password-link:hover {
+    text-decoration: underline;
+  }
+  
+  .register-link-button {
+    background-color: #e0e7ff; /* Color secundario suave */
+    color: #4f46e5; /* Color primario */
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 0.6rem 1.5rem; /* Padding */
+    border: 1px solid #c7d2fe;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    text-decoration: none; /* Si se usa como link */
+  }
+  
+  .register-link-button:hover {
+    background-color: #c7d2fe;
+  }
+  
+  /* --- Responsividad --- */
+  @media (max-width: 480px) {
+    .login-card {
+      padding: 1.5rem 1rem;
+    }
+  
+    .login-title {
+      font-size: 1.5rem;
+    }
+  
+    .input-field {
+      padding: 0.7rem 0.8rem;
+      padding-left: 2.8rem;
+      padding-right: 2.8rem;
+      font-size: 0.9rem;
+    }
+  
+     .input-icon {
+         font-size: 0.9rem;
+     }
+     .input-icon-left { left: 10px; }
+     .input-icon-right { right: 10px; }
+  
+    .login-submit-button {
+      padding: 0.8rem;
+      font-size: 0.95rem;
+    }
+  
+    .register-link-button {
+        padding: 0.5rem 1.2rem;
+    }
+  }

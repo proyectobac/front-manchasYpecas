@@ -1,0 +1,146 @@
+/* src/assets/css/navCliente.css */
+
+/* Variables (Reutilizables y centralizadas) */
+:root {
+  --avatar-size: 38px; /* Tamaño base del avatar */
+  --avatar-bg: #007bff; /* Color de fondo para iniciales */
+  --avatar-text: #ffffff; /* Color del texto de iniciales */
+  --avatar-placeholder-bg: #e0e0e0; /* Fondo si no hay imagen */
+  --avatar-border: #ced4da; /* Borde sutil */
+  --dropdown-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --swal-dark-bg: rgba(0, 0, 0, 0.6); /* Fondo para ver foto */
+  --loading-pulse-color: #e0e0e0;
+}
+
+/* -------------------------------------- */
+/* Dropdown Header (Avatar y Nombre)      */
+/* -------------------------------------- */
+
+/* Contenedor del Avatar (Círculo con Imagen o Iniciales) */
+.avatar-container {
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+  border-radius: 50%; /* Círculo perfecto */
+  margin-right: 10px; /* Espacio a la derecha */
+  overflow: hidden; /* Oculta partes de la imagen que se salgan */
+  display: flex; /* Permite centrar contenido interno (iniciales) */
+  align-items: center; /* Centra verticalmente las iniciales */
+  justify-content: center; /* Centra horizontalmente las iniciales */
+  background-color: var(--avatar-placeholder-bg); /* Color de fondo si no hay imagen */
+  color: var(--avatar-text);
+  font-size: 0.9rem; /* Tamaño de las iniciales */
+  font-weight: bold;
+  border: 1px solid var(--avatar-border);
+  flex-shrink: 0; /* Evita que el avatar se comprima en layouts flexibles */
+  /* QUITAR: position: relative; y top: -9px; - Dejar que el flexbox del padre lo alinee */
+}
+
+/* Imagen dentro del contenedor del avatar */
+.avatar-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Escala la imagen para cubrir el área sin distorsión */
+}
+
+/* Texto de las iniciales dentro del contenedor */
+.avatar-container .avatar-initials {
+  line-height: 1; /* Ayuda a un mejor centrado vertical del texto */
+}
+
+/* NOTA: Los estilos del CDropdownToggle (display: flex, align-items: center, etc.)
+   están aplicados INLINE en el JSX. Esto es aceptable para layout básico
+   y asegura que el .avatar-container y el nombre se alineen correctamente. */
+
+
+/* -------------------------------------- */
+/* Placeholder de Carga                   */
+/* -------------------------------------- */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.loading-placeholder {
+  /* Estilos para el contenedor del estado de carga si es necesario */
+   /* Ya tiene display: flex, align-items: center inline */
+}
+
+.loading-placeholder .avatar-placeholder {
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+  border-radius: 50%;
+  background-color: var(--loading-pulse-color);
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.loading-placeholder .text-placeholder {
+  color: #aaa;
+  font-size: 0.95rem; /* Ligeramente más pequeño */
+}
+
+/* -------------------------------------- */
+/* Modal de la Cámara                     */
+/* -------------------------------------- */
+.camera-modal-backdrop {
+  position: fixed;
+  inset: 0; /* Equivalente a top, right, bottom, left = 0 */
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.65); /* Ligeramente más oscuro */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050; /* Asegura que esté por encima (valor común para modales) */
+}
+
+.camera-modal-content {
+  background-color: #ffffff;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  max-width: 90%; /* Limita el ancho en pantallas pequeñas */
+  width: auto; /* Permite que se ajuste al contenido */
+  max-height: 90vh; /* Limita la altura */
+  overflow: auto; /* Añade scroll si el contenido es muy grande */
+}
+
+/* -------------------------------------- */
+/* Estilos para Swal (Ver Foto)           */
+/* -------------------------------------- */
+
+/* Contenedor principal del Swal con fondo oscuro */
+.swal2-container.swal2-backdrop-show.swal2-dark-background {
+  background: var(--swal-dark-bg) !important; /* Fondo semi-transparente */
+}
+
+/* Popup principal dentro del Swal */
+.swal2-dark-background .swal2-popup {
+  background: transparent !important; /* Sin fondo para el contenedor del popup */
+  box-shadow: none !important; /* Sin sombra para el contenedor */
+  padding: 0 !important; /* Sin padding extra */
+}
+
+/* Imagen dentro del Swal */
+.swal2-dark-background .swal2-image.swal2-circle-image {
+  border-radius: 50% !important; /* Fuerza la forma circular */
+  border: 5px solid rgba(255, 255, 255, 0.9); /* Borde blanco semi-transparente */
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.6); /* Sombra más pronunciada */
+  width: 320px !important; /* Tamaño deseado */
+  height: 320px !important;
+  object-fit: cover; /* Asegurar que cubra el espacio */
+  margin: 0 auto !important; /* Centrar la imagen si el popup fuera más ancho */
+}
+
+/* Botón de cerrar (X) del Swal */
+.swal2-dark-background .swal2-close {
+  color: white !important;
+  background: rgba(40, 40, 40, 0.7) !important; /* Fondo oscuro para el botón */
+  border-radius: 50%;
+  width: 2.5em; /* Ajustar tamaño del botón */
+  height: 2.5em;
+  line-height: 2.5em; /* Centrar la 'X' */
+  transition: background-color 0.2s ease;
+}
+.swal2-dark-background .swal2-close:hover {
+  background: rgba(70, 70, 70, 0.8) !important;
+}
