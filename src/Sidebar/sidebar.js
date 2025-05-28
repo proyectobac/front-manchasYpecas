@@ -15,36 +15,20 @@ import {
   faUsers,
   faUserTag,
   faUserPlus
-
 } from "@fortawesome/free-solid-svg-icons";
-// Asegúrate que esta ruta es correcta desde src/components/ hasta tu archivo CSS
 import '../assets/css/Sidebar.css';
-import logo from "../assets/images/login1.jpg"
-// --- Simulación de getUserInfo y CheckPermission (Sin cambios funcionales) ---
-const getUserInfo = () => {
-  const userInfoString = localStorage.getItem('userInfo');
-  let userInfo = null;
-  if (userInfoString) {
-    try {
-      userInfo = JSON.parse(userInfoString);
-    } catch (e) {
-      console.error("Error parsing userInfo from localStorage", e);
-      userInfo = { rol: { permisos: [{ ruta: "/inicio" }, { ruta: "/productos/lista" }, { ruta: "/productos/crear" }] } };
-    }
-  } else {
-    console.log("No userInfo found in localStorage, using default.");
-    userInfo = { rol: { permisos: [{ ruta: "/inicio" }, { ruta: "/productos/lista" }, { ruta: "/productos/crear" }] } };
-  }
-  return userInfo;
-};
+import logo from "../assets/images/login1.jpg";
+import { getUserInfo } from '../Salida/auth';
 
 const CheckPermission = ({ route }) => {
   const userInfo = getUserInfo();
   if (!userInfo?.rol?.permisos) {
+    console.log('No se encontraron permisos:', userInfo);
     return false;
   }
   const permisosRutas = userInfo.rol.permisos.map((p) => p.ruta);
   const hasPermission = permisosRutas.includes(route);
+  console.log(`Checking permission for route ${route}:`, hasPermission);
   return hasPermission;
 };
 
@@ -56,7 +40,6 @@ const FilteredNav = (navItems) => {
         if (filteredSubItems.length > 0) {
           return { ...item, subItems: filteredSubItems };
         }
-
         return null;
       } else if (item.path) {
         return CheckPermission({ route: item.path }) ? item : null;
@@ -74,33 +57,34 @@ const menuItems = [
     icon: faBoxes,
     subItems: [
       { name: "Lista Productos", path: "/productos/lista", icon: faList },
+      { name: "Crear Producto", path: "/productos/crear", icon: faList },
     ],
   },
-
   {
     name: "Proveedores",
     icon: faTruckLoading,
     subItems: [
       { name: "Lista Proveedores", path: "/proveedor/lista", icon: faList },
+      { name: "Crear Proveedor", path: "/proveedor/crear", icon: faList },
     ],
   },
-
   {
     name: "Compras",
     icon: faShoppingCart,
     subItems: [
       { name: "Lista Compras", path: "/compras/lista", icon: faList },
+      { name: "Crear Compra", path: "/compras/crear", icon: faList },
     ],
   },
   {
     name: "Empleados",
-    icon: faShoppingCart,
+    icon: faUsers,
     subItems: [
       { name: "Lista Empleados", path: "/empleados/lista", icon: faList },
-      { name: "mi portal", path: "/permisoDasboardEmpleado", icon: faUserPlus },
+      { name: "Crear Empleado", path: "/empleados/crear", icon: faUserPlus },
+      { name: "Mi Portal", path: "/permisoDasboardEmpleado", icon: faUserPlus },
     ],
   },
-
   {
     name: "Tienda",
     icon: faStore,
@@ -108,7 +92,6 @@ const menuItems = [
       { name: "Tienda", path: "/tienda", icon: faStore },
     ],
   },
-  
   {
     name: "Configuracion",
     icon: faCog,
@@ -124,7 +107,6 @@ const Sidebar = () => {
   const [activeMenu, setActiveMenu] = useState(null);
   const location = useLocation();
 
-  // Efecto para abrir el menú padre correcto al cargar la página o navegar
   useEffect(() => {
     const currentPath = location.pathname;
     let parentMenuName = null;
@@ -160,7 +142,6 @@ const Sidebar = () => {
           filteredMenuItems.map((item, index) => (
             <div key={item.name || index} className="sidebar-menu-item">
               {item.subItems ? (
-                // Renderizar como botón desplegable
                 <>
                   <button
                     onClick={() => toggleMenu(item.name)}
@@ -178,24 +159,20 @@ const Sidebar = () => {
                     />
                   </button>
 
-                  {/* Renderizar submenú si está activo */}
-                  {activeMenu === item.name && (
-                    <div className="sidebar-submenu" id={`submenu-${item.name}`}>
-                      {item.subItems.map((subItem, subIndex) => (
-                        <Link
-                          key={subItem.name || subIndex}
-                          to={subItem.path || "#"}
-                          className={`sidebar-submenu-link ${location.pathname === subItem.path ? 'active' : ''}`}
-                        >
-                          {subItem.icon && <FontAwesomeIcon icon={subItem.icon} className="sidebar-submenu-icon" />}
-                          <span>{subItem.name}</span>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
+                  <div className={`sidebar-submenu ${activeMenu === item.name ? 'block' : 'hidden'}`} id={`submenu-${item.name}`}>
+                    {item.subItems.map((subItem, subIndex) => (
+                      <Link
+                        key={subItem.name || subIndex}
+                        to={subItem.path || "#"}
+                        className={`sidebar-submenu-link ${location.pathname === subItem.path ? 'active' : ''}`}
+                      >
+                        {subItem.icon && <FontAwesomeIcon icon={subItem.icon} className="sidebar-submenu-icon" />}
+                        <span>{subItem.name}</span>
+                      </Link>
+                    ))}
+                  </div>
                 </>
               ) : (
-                // Renderizar como enlace directo
                 item.path ? (
                   <Link
                     to={item.path}
@@ -221,11 +198,6 @@ const Sidebar = () => {
           </div>
         )}
       </nav>
-
-      {/* Sección inferior opcional */}
-      <div className="sidebar-footer">
-        {/* Puedes añadir info del usuario, botón de logout pequeño, etc. */}
-      </div>
     </aside>
   );
 };

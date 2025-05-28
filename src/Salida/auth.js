@@ -9,22 +9,29 @@ export const getToken = () => {
 export const isAuthenticated = () => {
   try {
     const token = getToken();
-    const expirationDate = localStorage.getItem('tokenExpiration');
+    const userInfo = localStorage.getItem('user');
 
-    if (!token || !expirationDate) {
+    if (!token || !userInfo) {
       return false;
     }
 
-    const currentDateTime = new Date();
-    const tokenExpirationDateTime = new Date(expirationDate);
+    // Decodificar el token para obtener la fecha de expiración
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
 
-    if (currentDateTime < tokenExpirationDateTime) {
+    const { exp } = JSON.parse(jsonPayload);
+    const expirationDate = new Date(exp * 1000);
+    const currentDateTime = new Date();
+
+    if (currentDateTime < expirationDate) {
       return true;
     } else {
-      // Si el token ha expirado, eliminar el token y refrescar la página
+      // Si el token ha expirado, limpiar todo
       localStorage.removeItem('token');
-      localStorage.removeItem('tokenExpiration');
-      window.location.reload(); // Refrescar la página
+      localStorage.removeItem('user');
       return false;
     }
   } catch (error) {
@@ -33,22 +40,31 @@ export const isAuthenticated = () => {
   }
 };
 
-export const setSession = (token, expirationDate, userInfo) => {
-  const userInfoWithId = {
-    ...userInfo,
-    id_usuario: userInfo.userId,
-  };
+export const setSession = (token, userInfo) => {
+  if (!token || !userInfo) {
+    console.error('Token o información de usuario faltante');
+    return;
+  }
 
+  // Guardar token y datos del usuario
   localStorage.setItem('token', token);
-  localStorage.setItem('tokenExpiration', expirationDate);
-  localStorage.setItem('userInfo', JSON.stringify(userInfoWithId));
-
+  localStorage.setItem('user', JSON.stringify(userInfo));
 
   // Redirigir según el rol del usuario
-  if (userInfo.rol.nombre === 'Cliente') {
-    window.location.href = '/cliente';
-  } else if (userInfo.rol.nombre === 'Empleado') {
-    window.location.href = '/permisoDasboardEmpleado';
+  if (userInfo.rol && userInfo.rol.nombre) {
+    switch (userInfo.rol.nombre.toLowerCase()) {
+      case 'cliente':
+        window.location.href = '/tienda';
+        break;
+      case 'empleado':
+        window.location.href = '/permisoDasboardEmpleado';
+        break;
+      case 'superadmin':
+      case 'administrador':
+      default:
+        window.location.href = '/inicio';
+        break;
+    }
   } else {
     window.location.href = '/inicio';
   }
@@ -56,18 +72,18 @@ export const setSession = (token, expirationDate, userInfo) => {
 
 export const removeSession = () => {
   localStorage.removeItem('token');
-  localStorage.removeItem('tokenExpiration');
-  localStorage.removeItem('userInfo');
+  localStorage.removeItem('user');
+  localStorage.removeItem('profileImage');
 };
 
 export const getUserInfo = () => {
-  const userInfoString = localStorage.getItem('userInfo');
+  const userInfoString = localStorage.getItem('user');
   return userInfoString ? JSON.parse(userInfoString) : null;
 };
 
 export const logout = () => {
   removeSession();
-  // Redirigir al login solo si es necesario
+  window.location.href = '/login';
 };
 
 // Inactividad: Redirigir si el usuario está inactivo más de 30 segundos
