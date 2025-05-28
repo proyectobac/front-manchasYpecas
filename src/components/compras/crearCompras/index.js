@@ -1,18 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FaSave, FaArrowLeft, FaPlus, FaTrashAlt } from 'react-icons/fa';
+import { FaSave, FaArrowLeft, FaPlus, FaTrashAlt, FaFilter } from 'react-icons/fa';
 import Swal from 'sweetalert2';
-import ComprasService from '../../../services/comprasService'; // Ajusta ruta
-import ProveedoresService from '../../../services/proveedoresService'; // Ajusta ruta
-import ProductosService from '../../../services/productosService'; // Ajusta ruta
-// Asume que global.css está importado o usa clases Tailwind
+import ComprasService from '../../../services/comprasService';
+import ProveedoresService from '../../../services/proveedoresService';
+import ProductosService from '../../../services/productosService';
 
 // Define los estados iniciales permitidos al crear
 const estadosInicialesCompra = [
     { value: 'Pendiente de Pago', label: 'Pendiente de Pago' },
     { value: 'Pagada', label: 'Pagada' },
-    // Puedes añadir 'Pagado Parcial' si tiene sentido registrarla así inicialmente
-    // { value: 'Pagado Parcial', label: 'Pago Parcial' },
 ];
 
 const CrearCompra = () => {
@@ -21,14 +18,15 @@ const CrearCompra = () => {
     // --- Estados del Formulario ---
     const [id_proveedor, setIdProveedor] = useState('');
     const [numero_referencia, setNumeroReferencia] = useState('');
-    const [estado_compra, setEstadoCompra] = useState(estadosInicialesCompra[0].value); // <-- NUEVO ESTADO, default 'Pendiente de Pago'
+    const [estado_compra, setEstadoCompra] = useState(estadosInicialesCompra[0].value);
     const [detalles, setDetalles] = useState([
-        { id_producto: '', cantidad: '', precio_costo_unitario: '', margen_aplicado: '' },
+        { id_producto: '', cantidad: '', precio_costo_unitario: '', margen_aplicado: '', categoria_filtro: '' },
     ]);
 
     // --- Estados para datos de Selects ---
     const [proveedoresList, setProveedoresList] = useState([]);
     const [productosList, setProductosList] = useState([]);
+    const [categoriasList, setCategoriasList] = useState([]);
     const [loadingData, setLoadingData] = useState(true);
 
     // --- Estado de Guardado ---
@@ -38,7 +36,7 @@ const CrearCompra = () => {
     const [focusedFields, setFocusedFields] = useState({
         id_proveedor: false,
         numero_referencia: false,
-        estado_compra: false, // <-- Añadido para el nuevo campo
+        estado_compra: false,
     });
 
     const handleFocus = (field) => {
@@ -59,7 +57,7 @@ const CrearCompra = () => {
             setLoadingData(true);
             try {
                 const [provRes, prodRes] = await Promise.all([
-                    ProveedoresService.getAll(), // Verifica que este método sea correcto
+                    ProveedoresService.getAll(),
                     ProductosService.getAllProductos(),
                 ]);
     
@@ -74,9 +72,19 @@ const CrearCompra = () => {
                 // Procesar Productos
                 if (prodRes && Array.isArray(prodRes.productos)) {
                     setProductosList(prodRes.productos);
+                    
+                    // Extraer categorías únicas de los productos
+                    const categoriasUnicas = [...new Set(
+                        prodRes.productos
+                            .filter(producto => producto.categoria && producto.categoria.trim() !== '')
+                            .map(producto => producto.categoria.trim())
+                    )].sort();
+                    
+                    setCategoriasList(categoriasUnicas);
                 } else {
                     console.warn("Respuesta inesperada de productos:", prodRes);
                     setProductosList([]);
+                    setCategoriasList([]);
                 }
     
             } catch (error) {
@@ -87,18 +95,29 @@ const CrearCompra = () => {
             }
         };
         fetchData();
-    }, []); // El array vacío asegura que se ejecute solo al montar
+    }, []);
 
     // --- Manejadores de Cambio ---
     const handleProveedorChange = (e) => setIdProveedor(e.target.value);
     const handleReferenciaChange = (e) => setNumeroReferencia(e.target.value);
-    const handleEstadoChange = (e) => setEstadoCompra(e.target.value); // <-- NUEVO HANDLER
+    const handleEstadoChange = (e) => setEstadoCompra(e.target.value);
+
+    // --- Función para filtrar productos por categoría ---
+    const getProductosFiltrados = (categoriaSeleccionada) => {
+        if (!categoriaSeleccionada || categoriaSeleccionada === '') {
+            return productosList;
+        }
+        return productosList.filter(producto => 
+            producto.categoria && 
+            producto.categoria.trim().toLowerCase() === categoriaSeleccionada.toLowerCase()
+        );
+    };
 
     // --- Manejadores de Detalles ---
     const handleAddDetalle = () => {
         setDetalles([
             ...detalles,
-            { id_producto: '', cantidad: '', precio_costo_unitario: '', margen_aplicado: '' },
+            { id_producto: '', cantidad: '', precio_costo_unitario: '', margen_aplicado: '', categoria_filtro: '' },
         ]);
     };
 
@@ -112,19 +131,29 @@ const CrearCompra = () => {
     };
 
     const handleDetalleChange = (index, e) => {
-        // ... (misma lógica de validación de números en detalle) ...
         const { name, value } = e.target;
         const newDetalles = detalles.map((detalle, i) => {
-          if (i === index) {
-            if ((name === 'cantidad' || name === 'precio_costo_unitario' || name === 'margen_aplicado') && value !== '') {
-              const numValue = parseFloat(value);
-              if (isNaN(numValue) || numValue < 0) return detalle;
-              if (name === 'cantidad' && !Number.isInteger(numValue)) return {...detalle, [name]: Math.floor(numValue)};
-              return { ...detalle, [name]: numValue };
+            if (i === index) {
+                // Si cambia la categoría, resetear el producto seleccionado
+                if (name === 'categoria_filtro') {
+                    return { 
+                        ...detalle, 
+                        [name]: value,
+                        id_producto: '' // Resetear producto cuando cambia categoría
+                    };
+                }
+                
+                if ((name === 'cantidad' || name === 'precio_costo_unitario' || name === 'margen_aplicado') && value !== '') {
+                    const numValue = parseFloat(value);
+                    if (isNaN(numValue) || numValue < 0) return detalle;
+                    if (name === 'cantidad' && !Number.isInteger(numValue)) {
+                        return {...detalle, [name]: Math.floor(numValue)};
+                    }
+                    return { ...detalle, [name]: numValue };
+                }
+                return { ...detalle, [name]: value };
             }
-            return { ...detalle, [name]: value };
-          }
-          return detalle;
+            return detalle;
         });
         setDetalles(newDetalles);
     };
@@ -132,22 +161,27 @@ const CrearCompra = () => {
     // --- Validación antes de Guardar ---
     const validarFormulario = () => {
         if (!id_proveedor) {
-            Swal.fire('Error', 'Debe seleccionar un proveedor.', 'error'); return false;
+            Swal.fire('Error', 'Debe seleccionar un proveedor.', 'error'); 
+            return false;
         }
-        if (!estado_compra) { // <-- Validar estado
-            Swal.fire('Error', 'Debe seleccionar un estado inicial para la compra.', 'error'); return false;
+        if (!estado_compra) {
+            Swal.fire('Error', 'Debe seleccionar un estado inicial para la compra.', 'error'); 
+            return false;
         }
         if (detalles.length === 0) {
-            Swal.fire('Error', 'Debe añadir al menos un producto.', 'error'); return false;
+            Swal.fire('Error', 'Debe añadir al menos un producto.', 'error'); 
+            return false;
         }
-        for (let i = 0; i < detalles.length; i++) { // <-- Misma validación de detalles
+        for (let i = 0; i < detalles.length; i++) {
             const d = detalles[i];
-             if (!d.id_producto || !d.cantidad || d.cantidad <= 0 || d.precio_costo_unitario === '' || d.precio_costo_unitario < 0) {
-               Swal.fire('Error', `Error en línea ${i + 1}: Producto, cantidad (>0) y costo (>=0) obligatorios.`, 'error'); return false;
-             }
-             if (d.margen_aplicado !== '' && d.margen_aplicado < 0) {
-               Swal.fire('Error', `Error en línea ${i + 1}: El margen no puede ser negativo.`, 'error'); return false;
-             }
+            if (!d.id_producto || !d.cantidad || d.cantidad <= 0 || d.precio_costo_unitario === '' || d.precio_costo_unitario < 0) {
+                Swal.fire('Error', `Error en línea ${i + 1}: Producto, cantidad (>0) y costo (>=0) obligatorios.`, 'error'); 
+                return false;
+            }
+            if (d.margen_aplicado !== '' && d.margen_aplicado < 0) {
+                Swal.fire('Error', `Error en línea ${i + 1}: El margen no puede ser negativo.`, 'error'); 
+                return false;
+            }
         }
         return true;
     };
@@ -159,12 +193,10 @@ const CrearCompra = () => {
 
         setIsSaving(true);
 
-        // Construir objeto de datos incluyendo el estado
         const compraData = {
             id_proveedor: parseInt(id_proveedor),
             numero_referencia: numero_referencia || null,
-            estado_compra: estado_compra, // <-- Incluir estado seleccionado
-            // fecha_compra: fecha_compra || undefined, // Si se captura
+            estado_compra: estado_compra,
             detalles: detalles.map(d => ({
                 id_producto: parseInt(d.id_producto),
                 cantidad: parseInt(d.cantidad),
@@ -177,9 +209,11 @@ const CrearCompra = () => {
             const response = await ComprasService.createCompra(compraData);
             if (response && response.ok) {
                 Swal.fire({
-                    icon: 'success', title: '¡Éxito!',
+                    icon: 'success', 
+                    title: '¡Éxito!',
                     text: response.msg || 'Compra creada exitosamente.',
-                    timer: 2000, showConfirmButton: false,
+                    timer: 2000, 
+                    showConfirmButton: false,
                 }).then(() => {
                     navigate('/compras/lista');
                 });
@@ -209,68 +243,230 @@ const CrearCompra = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 mb-6 items-end">
                     {/* Proveedor */}
                     <div className="form-field">
-                        <label htmlFor="id_proveedor" className={`floating-label ${shouldFloatLabel("id_proveedor", id_proveedor) ? "label-floated" : ""}`}>Proveedor*</label>
-                        <select id="id_proveedor" name="id_proveedor" value={id_proveedor} onChange={handleProveedorChange} onFocus={() => handleFocus("id_proveedor")} onBlur={() => handleBlur("id_proveedor")} className="form-select" required>
+                        <label htmlFor="id_proveedor" className={`floating-label ${shouldFloatLabel("id_proveedor", id_proveedor) ? "label-floated" : ""}`}>
+                            Proveedor*
+                        </label>
+                        <select 
+                            id="id_proveedor" 
+                            name="id_proveedor" 
+                            value={id_proveedor} 
+                            onChange={handleProveedorChange} 
+                            onFocus={() => handleFocus("id_proveedor")} 
+                            onBlur={() => handleBlur("id_proveedor")} 
+                            className="form-select" 
+                            required
+                        >
                             <option value="" disabled>Seleccione...</option>
-                            {proveedoresList.map((prov) => ( <option key={prov.id_proveedor} value={prov.id_proveedor}>{prov.nombre} ({prov.num_documento})</option> ))}
+                            {proveedoresList.map((prov) => (
+                                <option key={prov.id_proveedor} value={prov.id_proveedor}>
+                                    {prov.nombre} ({prov.num_documento})
+                                </option>
+                            ))}
                         </select>
                     </div>
 
                     {/* Referencia */}
                     <div className="form-field">
-                        <label htmlFor="numero_referencia" className={`floating-label ${shouldFloatLabel("numero_referencia", numero_referencia) ? "label-floated" : ""}`}>Nº Referencia</label>
-                        <input id="numero_referencia" type="text" name="numero_referencia" value={numero_referencia} onChange={handleReferenciaChange} onFocus={() => handleFocus("numero_referencia")} onBlur={() => handleBlur("numero_referencia")} className="form-input" maxLength={50} />
+                        <label htmlFor="numero_referencia" className={`floating-label ${shouldFloatLabel("numero_referencia", numero_referencia) ? "label-floated" : ""}`}>
+                            Nº Referencia
+                        </label>
+                        <input 
+                            id="numero_referencia" 
+                            type="text" 
+                            name="numero_referencia" 
+                            value={numero_referencia} 
+                            onChange={handleReferenciaChange} 
+                            onFocus={() => handleFocus("numero_referencia")} 
+                            onBlur={() => handleBlur("numero_referencia")} 
+                            className="form-input" 
+                            maxLength={50} 
+                        />
                     </div>
 
                     {/* Estado Inicial */}
                     <div className="form-field">
-                        <label htmlFor="estado_compra" className={`floating-label ${shouldFloatLabel("estado_compra", estado_compra) ? "label-floated" : ""}`}>Estado Inicial*</label>
-                        <select id="estado_compra" name="estado_compra" value={estado_compra} onChange={handleEstadoChange} onFocus={() => handleFocus("estado_compra")} onBlur={() => handleBlur("estado_compra")} className="form-select" required>
-                            {estadosInicialesCompra.map((estado) => ( <option key={estado.value} value={estado.value}>{estado.label}</option> ))}
+                        <label htmlFor="estado_compra" className={`floating-label ${shouldFloatLabel("estado_compra", estado_compra) ? "label-floated" : ""}`}>
+                            Estado Inicial*
+                        </label>
+                        <select 
+                            id="estado_compra" 
+                            name="estado_compra" 
+                            value={estado_compra} 
+                            onChange={handleEstadoChange} 
+                            onFocus={() => handleFocus("estado_compra")} 
+                            onBlur={() => handleBlur("estado_compra")} 
+                            className="form-select" 
+                            required
+                        >
+                            {estadosInicialesCompra.map((estado) => (
+                                <option key={estado.value} value={estado.value}>
+                                    {estado.label}
+                                </option>
+                            ))}
                         </select>
                     </div>
                 </div>
 
-                {/* Sección de Detalles (sin cambios en el JSX) */}
+                {/* Sección de Detalles con Filtro por Categoría */}
                 <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-3 border-b pb-2">Detalles de la Compra</h3>
+                    <h3 className="text-lg font-semibold mb-3 border-b pb-2">
+                        <FaFilter className="inline mr-2" />
+                        Detalles de la Compra
+                    </h3>
                     {detalles.map((detalle, index) => (
-                        <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-3 items-center mb-4 p-3 border rounded bg-gray-50 relative">
-                            {/* Producto */}
+                        <div key={index} className="grid grid-cols-1 md:grid-cols-10 gap-x-4 gap-y-3 items-center mb-4 p-3 border rounded bg-gray-50 relative">
+                            
+                            {/* Selector Principal: Categoría o Producto */}
                             <div className="form-field md:col-span-4">
-                                <label htmlFor={`producto-${index}`} className="block text-xs font-medium text-gray-600 mb-1">Producto*</label>
-                                <select id={`producto-${index}`} name="id_producto" value={detalle.id_producto} onChange={(e) => handleDetalleChange(index, e)} className="form-select text-sm" required>
-                                     <option value="" disabled>Seleccione...</option>
-                                     {productosList.map((prod) => (<option key={prod.id_producto} value={prod.id_producto}>{prod.nombre}</option>))}
-                                </select>
+                                <label htmlFor={`selector-${index}`} className="block text-xs font-medium text-gray-600 mb-1">
+                                    Producto* <span className="text-gray-400">(Primero categoría, luego producto)</span>
+                                </label>
+                                
+                                {/* Si no hay categoría seleccionada, mostrar selector de categorías */}
+                                {!detalle.categoria_filtro ? (
+                                    <select 
+                                        id={`selector-${index}`} 
+                                        name="categoria_filtro" 
+                                        value={detalle.categoria_filtro} 
+                                        onChange={(e) => handleDetalleChange(index, e)} 
+                                        className="form-select text-sm"
+                                    >
+                                        <option value="" disabled>1. Seleccione una categoría...</option>
+                                        {categoriasList.map((categoria) => (
+                                            <option key={categoria} value={categoria}>
+                                                📁 {categoria}
+                                            </option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    /* Si hay categoría seleccionada, mostrar productos de esa categoría */
+                                    <div className="space-y-2">
+                                        {/* Mostrar categoría seleccionada con botón para cambiar */}
+                                        <div className="flex items-center justify-between bg-blue-50 px-3 py-2 rounded border">
+                                            <span className="text-sm text-blue-800">
+                                                📁 <strong>{detalle.categoria_filtro}</strong>
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDetalleChange(index, { 
+                                                    target: { name: 'categoria_filtro', value: '' } 
+                                                })}
+                                                className="text-xs text-blue-600 hover:text-blue-800 underline"
+                                                title="Cambiar categoría"
+                                            >
+                                                Cambiar
+                                            </button>
+                                        </div>
+                                        
+                                        {/* Selector de productos filtrados */}
+                                        <select 
+                                            id={`producto-${index}`} 
+                                            name="id_producto" 
+                                            value={detalle.id_producto} 
+                                            onChange={(e) => handleDetalleChange(index, e)} 
+                                            className="form-select text-sm" 
+                                            required
+                                        >
+                                            <option value="" disabled>2. Seleccione el producto...</option>
+                                            {getProductosFiltrados(detalle.categoria_filtro).map((prod) => (
+                                                <option key={prod.id_producto} value={prod.id_producto}>
+                                                    🏷️ {prod.nombre}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
                             </div>
+                            
                             {/* Cantidad */}
                             <div className="form-field md:col-span-2">
-                                <label htmlFor={`cantidad-${index}`} className="block text-xs font-medium text-gray-600 mb-1">Cantidad*</label>
-                                <input id={`cantidad-${index}`} type="number" name="cantidad" value={detalle.cantidad} onChange={(e) => handleDetalleChange(index, e)} className="form-input text-sm" min="1" step="1" required/>
+                                <label htmlFor={`cantidad-${index}`} className="block text-xs font-medium text-gray-600 mb-1">
+                                    Cantidad*
+                                </label>
+                                <input 
+                                    id={`cantidad-${index}`} 
+                                    type="number" 
+                                    name="cantidad" 
+                                    value={detalle.cantidad} 
+                                    onChange={(e) => handleDetalleChange(index, e)} 
+                                    className="form-input text-sm" 
+                                    min="1" 
+                                    step="1" 
+                                    required
+                                />
                             </div>
+                            
                             {/* Precio Costo */}
                             <div className="form-field md:col-span-2">
-                                <label htmlFor={`costo-${index}`} className="block text-xs font-medium text-gray-600 mb-1">P. Costo U.*</label>
-                                <input id={`costo-${index}`} type="number" name="precio_costo_unitario" value={detalle.precio_costo_unitario} onChange={(e) => handleDetalleChange(index, e)} className="form-input text-sm" min="0" step="0.01" required/>
+                                <label htmlFor={`costo-${index}`} className="block text-xs font-medium text-gray-600 mb-1">
+                                    P. Costo U.*
+                                </label>
+                                <input 
+                                    id={`costo-${index}`} 
+                                    type="number" 
+                                    name="precio_costo_unitario" 
+                                    value={detalle.precio_costo_unitario} 
+                                    onChange={(e) => handleDetalleChange(index, e)} 
+                                    className="form-input text-sm" 
+                                    min="0" 
+                                    step="0.01" 
+                                    required
+                                />
                             </div>
+                            
                             {/* Margen */}
-                            <div className="form-field md:col-span-2">
-                                <label htmlFor={`margen-${index}`} className="block text-xs font-medium text-gray-600 mb-1">Margen (%)</label>
-                                <input id={`margen-${index}`} type="number" name="margen_aplicado" value={detalle.margen_aplicado} onChange={(e) => handleDetalleChange(index, e)} className="form-input text-sm" min="0" step="0.01" placeholder='Ej: 8'/>
+                            <div className="form-field md:col-span-1">
+                                <label htmlFor={`margen-${index}`} className="block text-xs font-medium text-gray-600 mb-1">
+                                    Margen (%)
+                                </label>
+                                <input 
+                                    id={`margen-${index}`} 
+                                    type="number" 
+                                    name="margen_aplicado" 
+                                    value={detalle.margen_aplicado} 
+                                    onChange={(e) => handleDetalleChange(index, e)} 
+                                    className="form-input text-sm" 
+                                    min="0" 
+                                    step="0.01" 
+                                    placeholder='8'
+                                />
                             </div>
+                            
                             {/* Botón Eliminar Línea */}
-                            <div className="md:col-span-2 flex items-end justify-center md:justify-end mt-2 md:mt-0">
-                                {detalles.length > 1 && (<button type="button" onClick={() => handleRemoveDetalle(index)} className="button button-danger button-small p-2" title="Eliminar línea"><FaTrashAlt /></button>)}
+                            <div className="md:col-span-1 flex items-end justify-center md:justify-end mt-2 md:mt-0">
+                                {detalles.length > 1 && (
+                                    <button 
+                                        type="button" 
+                                        onClick={() => handleRemoveDetalle(index)} 
+                                        className="button button-danger button-small p-2" 
+                                        title="Eliminar línea"
+                                    >
+                                        <FaTrashAlt />
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}
-                    <button type="button" onClick={handleAddDetalle} className="button button-secondary button-small mt-2" disabled={isSaving}><FaPlus /> Añadir Producto</button>
+                    
+                    <button 
+                        type="button" 
+                        onClick={handleAddDetalle} 
+                        className="button button-secondary button-small mt-2" 
+                        disabled={isSaving}
+                    >
+                        <FaPlus /> Añadir Producto
+                    </button>
+                    
+                  
                 </div>
 
-                {/* Botones Principales (sin cambios en JSX) */}
+                {/* Botones Principales */}
                 <div className="button-container mt-8">
-                    <button type="submit" className="button button-primary" disabled={isSaving || loadingData}>
+                    <button 
+                        type="submit" 
+                        className="button button-primary" 
+                        disabled={isSaving || loadingData}
+                    >
                         {isSaving ? 'Guardando...' : <><FaSave /> Guardar Compra</>}
                     </button>
                     <Link to="/compras/lista" className="button button-secondary">

@@ -9,11 +9,11 @@ import {
   FaToggleOff,
   FaTimes,
   FaSave,
-  FaImage,
-  FaEye,
   FaSearch,
   FaChevronLeft,
   FaChevronRight,
+  FaEye,
+  FaFilter
 } from "react-icons/fa";
 import ProductosService from "../../../services/productosService";
 import defaultProductImage from "../../../assets/images/login1.jpg";
@@ -35,12 +35,11 @@ const ListaProductos = () => {
   // Estados para el Modal de Edición
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [newPhotoFile, setNewPhotoFile] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
-  const fileInputRef = useRef(null);
 
   // Estados para filtrado y paginación
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
@@ -74,32 +73,39 @@ const ListaProductos = () => {
     fetchProductos();
   }, [fetchProductos]);
 
-  // Filtra productos basado en el término de búsqueda
+  // Filtra productos basado en el término de búsqueda y categoría
   useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setFilteredProductos(productos);
-    } else {
-      const results = productos.filter(
+    let results = productos;
+    
+    // Filtrar por categoría si hay una seleccionada
+    if (selectedCategory) {
+      results = results.filter(producto => producto.categoria === selectedCategory);
+    }
+    
+    // Filtrar por término de búsqueda
+    if (searchTerm.trim() !== "") {
+      results = results.filter(
         (producto) =>
           producto.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
           producto.categoria.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (producto.descripcion &&
             producto.descripcion.toLowerCase().includes(searchTerm.toLowerCase()))
       );
-      setFilteredProductos(results);
     }
+    
+    setFilteredProductos(results);
     setCurrentPage(1);
-    setTotalPages(Math.max(1, Math.ceil(filteredProductos.length / itemsPerPage)));
-  }, [searchTerm, productos]);
-
-  // Actualiza el número total de páginas cuando cambian los productos filtrados
-  useEffect(() => {
-    setTotalPages(Math.max(1, Math.ceil(filteredProductos.length / itemsPerPage)));
-  }, [filteredProductos]);
+    setTotalPages(Math.max(1, Math.ceil(results.length / itemsPerPage)));
+  }, [searchTerm, selectedCategory, productos]);
 
   // Manejar cambio en el campo de búsqueda
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
+  };
+
+  // Manejar cambio en el filtro de categoría
+  const handleCategoryChange = (e) => {
+    setSelectedCategory(e.target.value);
   };
 
   // Manejadores de paginación
@@ -192,8 +198,6 @@ const ListaProductos = () => {
       title: producto.nombre,
       html: `
         <div class="producto-detalle">
-          <p><strong>Foto:</strong></p>
-          <img src="${producto.foto || defaultProductImage}" alt="${producto.nombre}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;" onerror="this.src='${defaultProductImage}'" />
           <p><strong>Categoría:</strong> ${producto.categoria}</p>
           <p><strong>Precio Costo:</strong> ${formatCurrency(producto.precioCosto)}</p>
           <p><strong>Precio Venta:</strong> ${formatCurrency(producto.precioVenta)}</p>
@@ -218,35 +222,17 @@ const ListaProductos = () => {
   // Manejadores para el Modal de Edición
   const handleOpenEditModal = (producto) => {
     setEditingProduct({ ...producto });
-    setNewPhotoFile(null);
     setIsEditModalOpen(true);
   };
 
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
     setEditingProduct(null);
-    setNewPhotoFile(null);
   };
 
   const handleEditInputChange = (e) => {
     const { name, value } = e.target;
     setEditingProduct((prev) => (prev ? { ...prev, [name]: value } : null));
-  };
-
-  const handleEditFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setNewPhotoFile(file);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setEditingProduct((prev) =>
-          prev ? { ...prev, foto: event.target?.result } : null
-        );
-      };
-      reader.readAsDataURL(file);
-    } else {
-      setNewPhotoFile(null);
-    }
   };
 
   const handleSaveChanges = async () => {
@@ -265,9 +251,6 @@ const ListaProductos = () => {
     formData.append("nombre", editingProduct.nombre);
     formData.append("categoria", editingProduct.categoria);
     formData.append("descripcion", editingProduct.descripcion || "");
-    if (newPhotoFile) {
-      formData.append("foto", newPhotoFile);
-    }
 
     try {
       await ProductosService.updateProducto(editingProduct.id_producto, formData);
@@ -317,17 +300,32 @@ const ListaProductos = () => {
         </div>
       </div>
 
-      {/* Filtro de búsqueda */}
-      <div className="mb-6">
+      {/* Filtros */}
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="relative flex items-center">
           <FaSearch className="absolute left-3 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar por nombre, categoría o descripción..."
+            placeholder="Buscar por nombre o descripción..."
             className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={searchTerm}
             onChange={handleSearchChange}
           />
+        </div>
+        <div className="relative flex items-center">
+          <FaFilter className="absolute left-3 text-gray-400" />
+          <select
+            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+            value={selectedCategory}
+            onChange={handleCategoryChange}
+          >
+            <option value="">Todas las categorías</option>
+            {categoriasList.map((cat) => (
+              <option key={cat.value} value={cat.value}>
+                {cat.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -360,7 +358,6 @@ const ListaProductos = () => {
               <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow-md">
                 <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-4 py-2 text-left text-gray-600">Foto</th>
                     <th className="px-4 py-2 text-left text-gray-600">Nombre</th>
                     <th className="px-4 py-2 text-left text-gray-600">Categoría</th>
                     <th className="px-4 py-2 text-left text-gray-600">P. Costo</th>
@@ -375,16 +372,6 @@ const ListaProductos = () => {
                     const isProductActive = producto.estado === "Activo";
                     return (
                       <tr key={producto.id_producto} className="border-t">
-                        <td className="px-4 py-2">
-                          <img
-                            src={producto.foto || defaultProductImage}
-                            alt={producto.nombre}
-                            className="w-10 h-10 md:w-12 md:h-12 object-cover rounded-full mx-auto border"
-                            onError={(e) => {
-                              e.target.src = defaultProductImage;
-                            }}
-                          />
-                        </td>
                         <td className="px-4 py-2">{producto.nombre}</td>
                         <td className="px-4 py-2">{producto.categoria}</td>
                         <td className="px-4 py-2">{formatCurrency(producto.precioCosto)}</td>
@@ -469,9 +456,7 @@ const ListaProductos = () => {
                   <FaChevronLeft />
                 </button>
                 
-                {/* Generación dinámica de botones de página */}
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  // Lógica para mostrar páginas adecuadas alrededor de la página actual
                   let pageNum;
                   if (totalPages <= 5) {
                     pageNum = i + 1;
@@ -544,41 +529,6 @@ const ListaProductos = () => {
               }}
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 text-center">
-                    Foto Actual
-                  </label>
-                  <img
-                    src={editingProduct.foto || defaultProductImage}
-                    alt="Vista previa"
-                    className="w-24 h-24 object-cover rounded-lg mx-auto border mt-2"
-                    onError={(e) => {
-                      e.target.src = defaultProductImage;
-                    }}
-                  />
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleEditFileChange}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isSaving}
-                    className={`mt-2 mx-auto block px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 ${
-                      isSaving ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
-                  >
-                    <FaImage className="inline mr-2" /> Cambiar Foto
-                  </button>
-                  {newPhotoFile && (
-                    <p className="text-xs text-gray-500 mt-1 text-center">
-                      Nuevo: {newPhotoFile.name}
-                    </p>
-                  )}
-                </div>
                 <div className="form-field">
                   <label htmlFor="edit-nombre" className="block text-sm font-medium text-gray-700">
                     Nombre*
