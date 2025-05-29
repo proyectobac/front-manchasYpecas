@@ -272,7 +272,7 @@ const CrearProveedores = () => {
               className={`form-input ${!tipoDocumentoValido ? "input-error" : ""}`}
               required
             >
-              <option value="">Seleccione...</option>
+              <option value=""></option>
               <option value="DNI">Celuda de Ciudadanaia</option>
               <option value="RUC">RUC</option>
               <option value="Pasaporte">Pasaporte</option>

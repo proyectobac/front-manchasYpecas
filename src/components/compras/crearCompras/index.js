@@ -22,6 +22,7 @@ const CrearCompra = () => {
     const [detalles, setDetalles] = useState([
         { id_producto: '', cantidad: '', precio_costo_unitario: '', margen_aplicado: '', categoria_filtro: '' },
     ]);
+    const [ultimaReferencia, setUltimaReferencia] = useState(0);
 
     // --- Estados para datos de Selects ---
     const [proveedoresList, setProveedoresList] = useState([]);
@@ -51,11 +52,30 @@ const CrearCompra = () => {
         return focusedFields[field] || (value !== "" && value !== null && value !== undefined);
     };
 
+    // Función para generar el siguiente número de referencia
+    const generarSiguienteReferencia = (ultimoNumero) => {
+        const siguiente = ultimoNumero + 1;
+        return `FACT-PROV-${String(siguiente).padStart(3, '0')}`;
+    };
+
     // --- Cargar Proveedores y Productos al Montar ---
     useEffect(() => {
         const fetchData = async () => {
             setLoadingData(true);
             try {
+                // Obtener la última compra para extraer el último número de referencia
+                const comprasResponse = await ComprasService.getAllCompras();
+                if (comprasResponse && Array.isArray(comprasResponse.compras)) {
+                    const referencias = comprasResponse.compras
+                        .map(compra => compra.numero_referencia)
+                        .filter(ref => ref && ref.startsWith('FACT-PROV-'))
+                        .map(ref => parseInt(ref.split('-')[2]));
+                    
+                    const ultimoNumero = referencias.length > 0 ? Math.max(...referencias) : 0;
+                    setUltimaReferencia(ultimoNumero);
+                    setNumeroReferencia(generarSiguienteReferencia(ultimoNumero));
+                }
+
                 const [provRes, prodRes] = await Promise.all([
                     ProveedoresService.getAll(),
                     ProductosService.getAllProductos(),
@@ -89,7 +109,7 @@ const CrearCompra = () => {
     
             } catch (error) {
                 console.error('Error cargando datos iniciales:', error);
-                Swal.fire('Error', 'No se pudieron cargar proveedores o productos.', 'error');
+                Swal.fire('Error', 'No se pudieron cargar los datos iniciales.', 'error');
             } finally {
                 setLoadingData(false);
             }
@@ -256,7 +276,7 @@ const CrearCompra = () => {
                             className="form-select" 
                             required
                         >
-                            <option value="" disabled>Seleccione...</option>
+                            <option value="" disabled></option>
                             {proveedoresList.map((prov) => (
                                 <option key={prov.id_proveedor} value={prov.id_proveedor}>
                                     {prov.nombre} ({prov.num_documento})
@@ -275,11 +295,8 @@ const CrearCompra = () => {
                             type="text" 
                             name="numero_referencia" 
                             value={numero_referencia} 
-                            onChange={handleReferenciaChange} 
-                            onFocus={() => handleFocus("numero_referencia")} 
-                            onBlur={() => handleBlur("numero_referencia")} 
-                            className="form-input" 
-                            maxLength={50} 
+                            className="form-input bg-gray-100" 
+                            readOnly 
                         />
                     </div>
 
@@ -370,7 +387,7 @@ const CrearCompra = () => {
                                             <option value="" disabled>2. Seleccione el producto...</option>
                                             {getProductosFiltrados(detalle.categoria_filtro).map((prod) => (
                                                 <option key={prod.id_producto} value={prod.id_producto}>
-                                                    🏷️ {prod.nombre}
+                                                    🏷️ {prod.nombre} (Stock actual: {prod.stock})
                                                 </option>
                                             ))}
                                         </select>
@@ -378,22 +395,31 @@ const CrearCompra = () => {
                                 )}
                             </div>
                             
-                            {/* Cantidad */}
+                            {/* Cantidad y Stock Actual */}
                             <div className="form-field md:col-span-2">
                                 <label htmlFor={`cantidad-${index}`} className="block text-xs font-medium text-gray-600 mb-1">
                                     Cantidad*
                                 </label>
-                                <input 
-                                    id={`cantidad-${index}`} 
-                                    type="number" 
-                                    name="cantidad" 
-                                    value={detalle.cantidad} 
-                                    onChange={(e) => handleDetalleChange(index, e)} 
-                                    className="form-input text-sm" 
-                                    min="1" 
-                                    step="1" 
-                                    required
-                                />
+                                <div className="space-y-1">
+                                    <input 
+                                        id={`cantidad-${index}`} 
+                                        type="number" 
+                                        name="cantidad" 
+                                        value={detalle.cantidad} 
+                                        onChange={(e) => handleDetalleChange(index, e)} 
+                                        className="form-input text-sm" 
+                                        min="1" 
+                                        step="1" 
+                                        required
+                                    />
+                                    {detalle.id_producto && (
+                                        <div className="text-xs text-gray-600">
+                                            Stock actual: {
+                                                productosList.find(p => p.id_producto.toString() === detalle.id_producto.toString())?.stock || 0
+                                            } unidades
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             
                             {/* Precio Costo */}

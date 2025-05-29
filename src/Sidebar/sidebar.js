@@ -57,7 +57,6 @@ const menuItems = [
     icon: faBoxes,
     subItems: [
       { name: "Lista Productos", path: "/productos/lista", icon: faList },
-      { name: "Crear Producto", path: "/productos/crear", icon: faList },
     ],
   },
   {
@@ -65,7 +64,6 @@ const menuItems = [
     icon: faTruckLoading,
     subItems: [
       { name: "Lista Proveedores", path: "/proveedor/lista", icon: faList },
-      { name: "Crear Proveedor", path: "/proveedor/crear", icon: faList },
     ],
   },
   {
@@ -73,7 +71,6 @@ const menuItems = [
     icon: faShoppingCart,
     subItems: [
       { name: "Lista Compras", path: "/compras/lista", icon: faList },
-      { name: "Crear Compra", path: "/compras/crear", icon: faList },
     ],
   },
   {
@@ -81,7 +78,6 @@ const menuItems = [
     icon: faUsers,
     subItems: [
       { name: "Lista Empleados", path: "/empleados/lista", icon: faList },
-      { name: "Crear Empleado", path: "/empleados/crear", icon: faUserPlus },
       { name: "Mi Portal", path: "/permisoDasboardEmpleado", icon: faUserPlus },
     ],
   },
@@ -96,8 +92,8 @@ const menuItems = [
     name: "Configuracion",
     icon: faCog,
     subItems: [
-      { name: "Usuarios", path: "/usuarios", icon: faUsers },
-      { name: "Roles", path: "/usuarios", icon: faUserTag },
+      { name: "Usuarios", path: "/usuarios/lista", icon: faUsers },
+      { name: "Roles", path: "/roles/lista", icon: faUserTag },
     ],
   },
 ];

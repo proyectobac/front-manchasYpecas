@@ -47,7 +47,7 @@ const Layout = () => {
 
         {/* Pie de página */}
         <footer className="layout-footer">
-          Hecho por <strong>Feliciano Mosquera</strong> © 2025
+          {/* Hecho por <strong>Feliciano Mosquera</strong> © 2025 */}
         </footer>
       </div>
     </div>

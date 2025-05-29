@@ -4,7 +4,7 @@ import React from "react";
 const Footer = () => {
   return (
     <footer style={{ backgroundColor: "#333", color: "white", textAlign: "center", padding: "10px", position: "fixed", bottom: 0, width: "100%" }}>
-      <p>Hecho por Feliciano Mosquera © 2025.</p>
+      <p>Hecho por Nathalia Porra y Valentina Cardona © 2025.</p>
     </footer>
   );
 };

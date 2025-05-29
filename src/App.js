@@ -7,9 +7,9 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import Login from "./components/login/Login";
 import Register from "./components/register/Register";
 import Layout from "./Layout/layout";
-import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute"; // <-- Importa el nuevo componente
+import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute";
 import { ProfileImageProvider } from './components/perfilAdmin/ProfileImageContext';
-
+import Dashboard from './components/dashboard/Dashboard';
 
 // Tus vistas/páginas
 import CrearProductos from "./components/productos/crearProductos/index";
@@ -23,6 +23,12 @@ import ListaEmpleados from "./components/empleados/listaEmpleados/index";
 import PermisoDasboardEmpleado from "./components/empleados/PerfilEmpleado/index";
 import Tienda from "./components/tienda/tienda";
 import PaymentStatusPage from './components/PaymentStatusPage';
+
+// Nuevos componentes de usuarios y roles
+import ListaUsuarios from "./components/usuarios/ListaUsuarios";
+import CrearUsuario from "./components/usuarios/CrearUsuario";
+import ListaRoles from "./components/roles/ListaRoles";
+import CrearRol from "./components/roles/CrearRol";
 
 // AppHeaderDropdown se usa DENTRO de Layout, no necesita ruta propia aquí normalmente
 
@@ -41,8 +47,8 @@ const App = () => {
             {/* Rutas Protegidas */}
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<Layout />}>
-                <Route index element={<Navigate to="/tienda" replace />} />
-                <Route path="inicio" element={<h1>Bienvenido</h1>} />
+                <Route index element={<Navigate to="/inicio" replace />} />
+                <Route path="inicio" element={<Dashboard />} />
 
                 {/* Rutas protegidas que requieren autenticación */}
                 <Route path="productos/crear" element={<CrearProductos />} />
@@ -54,6 +60,12 @@ const App = () => {
                 <Route path="empleados/crear" element={<CrearEmpleados />} />
                 <Route path="empleados/lista" element={<ListaEmpleados />} />
                 <Route path="permisoDasboardEmpleado" element={<PermisoDasboardEmpleado />} />
+
+                {/* Nuevas rutas de usuarios y roles */}
+                <Route path="usuarios/lista" element={<ListaUsuarios />} />
+                <Route path="usuarios/crear" element={<CrearUsuario />} />
+                <Route path="roles/lista" element={<ListaRoles />} />
+                <Route path="roles/crear" element={<CrearRol />} />
               </Route>
             </Route>
 
