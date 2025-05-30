@@ -169,7 +169,7 @@ const ListaUsuarios = () => {
             }
         } catch (error) {
             console.error('Error eliminando usuario:', error);
-            Swal.fire('Error', 'No se pudo eliminar el usuario', 'error');
+            Swal.fire('Error', 'Este Uario no se puede eliminar porque tiene pagos asociados ', 'error');
         }
     };
 

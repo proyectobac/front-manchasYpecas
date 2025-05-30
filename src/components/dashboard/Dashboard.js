@@ -241,7 +241,7 @@ const Dashboard = () => {
                         <div className="p-5">
                             <div className="flex items-center">
                                 <div className="flex-shrink-0">
-                                    <FaShoppingCart className="h-6 w-6 text-gray-400" />
+                                    <FaShoppingCart className="h-6 w-6 text-indigo-600" />
                                 </div>
                                 <div className="ml-5 w-0 flex-1">
                                     <dl>
@@ -261,7 +261,7 @@ const Dashboard = () => {
                         <div className="p-5">
                             <div className="flex items-center">
                                 <div className="flex-shrink-0">
-                                    <FaBoxOpen className="h-6 w-6 text-gray-400" />
+                                    <FaBoxOpen className="h-6 w-6 text-orange-600" />
                                 </div>
                                 <div className="ml-5 w-0 flex-1">
                                     <dl>
@@ -281,7 +281,7 @@ const Dashboard = () => {
                         <div className="p-5">
                             <div className="flex items-center">
                                 <div className="flex-shrink-0">
-                                    <FaUsers className="h-6 w-6 text-gray-400" />
+                                    <FaUsers className="h-6 w-6 text-blue-600" />
                                 </div>
                                 <div className="ml-5 w-0 flex-1">
                                     <dl>
@@ -301,7 +301,7 @@ const Dashboard = () => {
                         <div className="p-5">
                             <div className="flex items-center">
                                 <div className="flex-shrink-0">
-                                    <FaCalendarCheck className="h-6 w-6 text-gray-400" />
+                                    <FaCalendarCheck className="h-6 w-6 text-green-600" />
                                 </div>
                                 <div className="ml-5 w-0 flex-1">
                                     <dl>
@@ -321,7 +321,7 @@ const Dashboard = () => {
                 {/* Estado de Compras */}
                 <div className="mt-8">
                     <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                        <FaFileInvoiceDollar className="mr-2" />
+                        <FaFileInvoiceDollar className="mr-2 text-purple-600" />
                         Estado de Compras
                     </h2>
                     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -410,7 +410,7 @@ const Dashboard = () => {
                     <div className="mt-6 bg-white shadow rounded-lg">
                         <div className="p-6">
                             <h3 className="text-lg leading-6 font-medium text-gray-900 flex items-center">
-                                <FaFileInvoiceDollar className="mr-2" />
+                                <FaFileInvoiceDollar className="mr-2 text-purple-600" />
                                 Compras Recientes
                             </h3>
                             <div className="mt-5">
@@ -472,7 +472,7 @@ const Dashboard = () => {
                     <div className="bg-white shadow rounded-lg">
                         <div className="p-6">
                             <h3 className="text-lg leading-6 font-medium text-gray-900 flex items-center">
-                                <FaPaw className="mr-2" />
+                                <FaPaw className="mr-2 text-orange-600" />
                                 Estado de Stock de Productos
                             </h3>
                             <div className="mt-5">
@@ -528,7 +528,7 @@ const Dashboard = () => {
                     <div className="bg-white shadow rounded-lg">
                         <div className="p-6">
                             <h3 className="text-lg leading-6 font-medium text-gray-900 flex items-center">
-                                <FaMoneyBillWave className="mr-2" />
+                                <FaMoneyBillWave className="mr-2 text-green-600" />
                                 Ventas Recientes
                             </h3>
                             <div className="mt-5">
@@ -565,7 +565,7 @@ const Dashboard = () => {
                     <div className="bg-white shadow rounded-lg">
                         <div className="p-6">
                             <h3 className="text-lg leading-6 font-medium text-gray-900 flex items-center">
-                                <FaChartLine className="mr-2" />
+                                <FaChartLine className="mr-2 text-blue-600" />
                                 Estadísticas Mensuales
                             </h3>
                             <div className="mt-5">
@@ -595,7 +595,7 @@ const Dashboard = () => {
                         <div className="rounded-md bg-yellow-50 p-4">
                             <div className="flex">
                                 <div className="flex-shrink-0">
-                                    <FaExclamationTriangle className="h-5 w-5 text-yellow-400" />
+                                    <FaExclamationTriangle className="h-5 w-5 text-yellow-600" />
                                 </div>
                                 <div className="ml-3">
                                     <h3 className="text-sm font-medium text-yellow-800">

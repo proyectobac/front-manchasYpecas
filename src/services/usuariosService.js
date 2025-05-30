@@ -37,7 +37,7 @@ class UsuariosService {
     // Actualizar un usuario
     async updateUsuario(userId, userData) {
         try {
-            const response = await axios.put(`${API_URL}/api/usuarios/${userId}`, userData, {
+            const response = await axios.put(`${API_URL}/api/usuarios/usuario/${userId}`, userData, {
                 headers: {
                     'Authorization': `Bearer ${getToken()}`
                 }
@@ -52,7 +52,7 @@ class UsuariosService {
     // Eliminar un usuario
     async deleteUsuario(userId) {
         try {
-            const response = await axios.delete(`${API_URL}/api/usuarios/${userId}`, {
+            const response = await axios.delete(`${API_URL}/api/usuarios/usuario/${userId}`, {
                 headers: {
                     'Authorization': `Bearer ${getToken()}`
                 }

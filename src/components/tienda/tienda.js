@@ -76,8 +76,9 @@ const carouselImages = [
 const TiendaCliente = () => {
     // Estado para todos los productos cargados, agrupados por categoría desde el backend
     const [productosPorCategoria, setProductosPorCategoria] = useState({});
+    const [productosNormales, setProductosNormales] = useState([]); // Nuevo estado para productos normales
     // Estado para las categorías disponibles (los nombres/claves del objeto anterior)
-    const [categorias, setCategorias] = useState([]); // Se llenará desde el backend
+    const [categorias, setCategorias] = useState([]);
     
     const [selectedCategoria, setSelectedCategoria] = useState('TODAS');
     // Estado para los productos que se muestran actualmente (filtrados por selectedCategoria)
@@ -170,17 +171,54 @@ const TiendaCliente = () => {
         }
     }, [cart]);
 
+    const fetchTodosLosProductos = useCallback(async () => {
+        try {
+            const response = await ProductosService.getAllProductos();
+            if (response && response.productos) {
+                // Aplicar el mismo filtro que usamos para los otros productos
+                const productosFiltrados = response.productos.filter(p => {
+                    const precio = parseFloat(p.precioVenta);
+                    const cumpleFiltros = p.estado === 'Activo' && 
+                           !isNaN(precio) && 
+                           precio > 0 && 
+                           parseInt(p.stock) > 0;
+                    
+                    if (!cumpleFiltros) {
+                        console.log('Producto filtrado (getAllProductos):', p.nombre, {
+                            activo: p.estado === 'Activo',
+                            precioValido: !isNaN(precio) && precio > 0,
+                            stockValido: parseInt(p.stock) > 0
+                        });
+                    }
+                    return cumpleFiltros;
+                });
+                
+                console.log('Productos filtrados (getAllProductos):', productosFiltrados);
+                setProductosNormales(productosFiltrados);
+            }
+        } catch (error) {
+            console.error('Error al obtener todos los productos:', error);
+        }
+    }, []);
+
     const fetchProductosYCategorias = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
             const responseData = await ProductosService.getProductosFromImagenesByCategoria();
+            console.log('Productos recibidos:', responseData);
             
             if (responseData && responseData.success && typeof responseData.productos === 'object') {
                 setProductosPorCategoria(responseData.productos);
                 
                 const categoriasObtenidas = Object.keys(responseData.productos);
-                const categoriasValidas = categoriasObtenidas.filter(catKey => Array.isArray(responseData.productos[catKey]) && responseData.productos[catKey].length > 0);
+                console.log('Categorías obtenidas:', categoriasObtenidas);
+                
+                const categoriasValidas = categoriasObtenidas.filter(catKey => 
+                    Array.isArray(responseData.productos[catKey]) && 
+                    responseData.productos[catKey].length > 0
+                );
+                console.log('Categorías válidas:', categoriasValidas);
 
                 const categoriasFormateadas = ['TODAS', ...categoriasValidas].map(catKey => ({
                     value: catKey,
@@ -204,37 +242,67 @@ const TiendaCliente = () => {
 
     useEffect(() => {
         fetchProductosYCategorias();
-    }, [fetchProductosYCategorias]);
+        fetchTodosLosProductos(); // Llamar a la nueva función
+    }, [fetchProductosYCategorias, fetchTodosLosProductos]);
 
     useEffect(() => {
-        if (loading || Object.keys(productosPorCategoria).length === 0) {
+        if (loading || (Object.keys(productosPorCategoria).length === 0 && productosNormales.length === 0)) {
             setFilteredProductos([]);
             return;
         }
+        
+        let results = [];
         if (selectedCategoria === 'TODAS') {
-            const todosLosProductos = Object.values(productosPorCategoria)
-                .flat()
+            // Combinar productos de ambas fuentes
+            const productosDesdeImagenes = Object.values(productosPorCategoria).flat();
+            results = [...productosDesdeImagenes, ...productosNormales]
                 .filter(p => {
                     const precio = parseFloat(p.precioVenta);
-                    return p.estado === 'Activo' && 
+                    const cumpleFiltros = p.estado === 'Activo' && 
                            !isNaN(precio) && 
                            precio > 0 && 
                            parseInt(p.stock) > 0;
+                    
+                    if (!cumpleFiltros) {
+                        console.log('Producto filtrado:', p.nombre, {
+                            activo: p.estado === 'Activo',
+                            precioValido: !isNaN(precio) && precio > 0,
+                            stockValido: parseInt(p.stock) > 0
+                        });
+                    }
+                    return cumpleFiltros;
                 });
-            setFilteredProductos(todosLosProductos);
         } else {
-            setFilteredProductos(
-                (productosPorCategoria[selectedCategoria] || [])
+            // Combinar productos de la categoría seleccionada de ambas fuentes
+            const productosDesdeImagenes = productosPorCategoria[selectedCategoria] || [];
+            const productosDesdeNormal = productosNormales.filter(p => p.categoria === selectedCategoria);
+            results = [...productosDesdeImagenes, ...productosDesdeNormal]
                 .filter(p => {
                     const precio = parseFloat(p.precioVenta);
-                    return p.estado === 'Activo' && 
+                    const cumpleFiltros = p.estado === 'Activo' && 
                            !isNaN(precio) && 
                            precio > 0 && 
                            parseInt(p.stock) > 0;
-                })
-            );
+                    
+                    if (!cumpleFiltros) {
+                        console.log('Producto filtrado en categoría específica:', p.nombre, {
+                            activo: p.estado === 'Activo',
+                            precioValido: !isNaN(precio) && precio > 0,
+                            stockValido: parseInt(p.stock) > 0
+                        });
+                    }
+                    return cumpleFiltros;
+                });
         }
-    }, [selectedCategoria, productosPorCategoria, loading]);
+        
+        // Eliminar duplicados basados en id_producto
+        results = results.filter((producto, index, self) =>
+            index === self.findIndex((p) => p.id_producto === producto.id_producto)
+        );
+        
+        console.log('Productos filtrados:', results);
+        setFilteredProductos(results);
+    }, [selectedCategoria, productosPorCategoria, productosNormales, loading]);
 
     const formatCurrency = (value) => { /* ... sin cambios ... */ 
         const numericValue = typeof value === 'string' ? parseFloat(value) : value;

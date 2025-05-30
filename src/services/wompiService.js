@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 const WOMPI_API_URL = 'https://sandbox.wompi.co/v1';
-const PUBLIC_KEY = 'pub_test_X3e7kT0MgwRZBFEK6TqYV2QbcJ3v9ICh';
+const PUBLIC_KEY = 'pub_test_My6mof7dPfcEmgPYW60t0cIa05ziShRn';
 const PRIVATE_KEY = 'prv_test_TyyIiZlTy6i7TgOB0kPpLGxc6705ROx8';
 
 const WompiService = {

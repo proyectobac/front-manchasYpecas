@@ -1,6 +1,3 @@
-
-
-
 // src/components/productos/crearProductos/index.js
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
@@ -24,20 +21,15 @@ const CrearProductos = () => {
   const [categoria, setCategoria] = useState("");
   const [estado] = useState("Activo");
   const [foto, setFoto] = useState(null);
-  const [precioVenta, setPrecioVenta] = useState(""); // Añadido para el formulario
-  const [stock, setStock] = useState("");           // Añadido para el formulario
-
 
   const [nombreValido, setNombreValido] = useState(true);
   const [descripcionValida, setDescripcionValida] = useState(true);
   const [categoriaValida, setCategoriaValida] = useState(true);
-  const [precioVentaValido, setPrecioVentaValido] = useState(true); // Añadido
-  const [stockValido, setStockValido] = useState(true);           // Añadido
 
   const navigate = useNavigate();
 
   const [focusedFields, setFocusedFields] = useState({
-    nombre: false, descripcion: false, categoria: false, precioVenta: false, stock: false,
+    nombre: false, descripcion: false, categoria: false
   });
 
   const handleFocus = (field) => setFocusedFields((prev) => ({ ...prev, [field]: true }));
@@ -50,57 +42,42 @@ const CrearProductos = () => {
       case "nombre": setNombre(value); validarNombre(value); break;
       case "descripcion": setDescripcion(value); validarDescripcion(value); break;
       case "categoria": setCategoria(value); validarCategoria(value); break;
-      case "precioVenta": setPrecioVenta(value); validarPrecioVenta(value); break;
-      case "stock": setStock(value); validarStock(value); break;
       default: break;
     }
   };
 
   const handleFileChange = (e) => setFoto(e.target.files[0] || null);
 
-  const validarNombre = (valor) => { /* ... sin cambios ... */ 
+  const validarNombre = (valor) => {
     const nombreRegex = /^[a-zA-Z0-9\sñáéíóúÁÉÍÓÚüÜ]+$/;
     const esValido = nombreRegex.test(valor) && valor.length >= 3 && valor.length <= 50;
     setNombreValido(esValido);
     return esValido;
   };
-  const validarDescripcion = (valor) => { /* ... sin cambios ... */ 
-    const descripcionRegex = /^[a-zA-Z0-9\sñáéíóúÁÉÍÓÚüÜ.,_%\-()/#@!?¡¿ M²mlLKg]+$/; // Permitir más caracteres
-    const esValida = valor === "" || (descripcionRegex.test(valor) && valor.length <= 150); // Ajustar longitud
+
+  const validarDescripcion = (valor) => {
+    const descripcionRegex = /^[a-zA-Z0-9\sñáéíóúÁÉÍÓÚüÜ.,_%\-()/#@!?¡¿ M²mlLKg]+$/;
+    const esValida = valor === "" || (descripcionRegex.test(valor) && valor.length <= 150);
     setDescripcionValida(esValida);
     return esValida;
   };
-  const validarCategoria = (valor) => { /* ... sin cambios ... */ 
+
+  const validarCategoria = (valor) => {
     const esValida = valor !== "";
     setCategoriaValida(esValida);
     return esValida;
   };
-  const validarPrecioVenta = (valor) => {
-    const esValido = valor === "" || (/^\d+(\.\d{1,2})?$/.test(valor) && parseFloat(valor) >= 0);
-    setPrecioVentaValido(esValido);
-    return esValido;
-  };
-  const validarStock = (valor) => {
-    const esValido = valor === "" || (/^\d+$/.test(valor) && parseInt(valor) >= 0);
-    setStockValido(esValido);
-    return esValido;
-  };
-
 
   const handleGuardarProducto = async (e) => {
     e.preventDefault();
     const esNombreValido = validarNombre(nombre);
     const esDescripcionValida = validarDescripcion(descripcion);
     const esCategoriaValida = validarCategoria(categoria);
-    const esPrecioVentaValido = validarPrecioVenta(precioVenta); // Validar precio
-    const esStockValido = validarStock(stock);                 // Validar stock
 
     if (!esNombreValido || !esCategoriaValida || 
-        (descripcion !== "" && !esDescripcionValida) ||
-        !esPrecioVentaValido || !esStockValido
+        (descripcion !== "" && !esDescripcionValida)
     ) {
       let errorText = "Por favor, corrija los errores en el formulario.";
-      // Podrías ser más específico si quieres
       Swal.fire({ icon: "error", title: "Error de Validación", text: errorText, timer: 3500 });
       return;
     }
@@ -110,14 +87,10 @@ const CrearProductos = () => {
     formDataToSend.append("descripcion", descripcion.trim());
     formDataToSend.append("categoria", categoria);
     formDataToSend.append("estado", estado);
-    formDataToSend.append("precioVenta", precioVenta || "0"); // Enviar 0 si está vacío
-    formDataToSend.append("stock", stock || "0");             // Enviar 0 si está vacío
-    // precioCosto y tipoCompra son opcionales y se manejarán por defecto en el backend/modelo
 
     if (foto) formDataToSend.append("foto", foto);
 
     try {
-      // Usar el método createProducto que espera FormData
       await ProductosService.createProducto(formDataToSend); 
       Swal.fire({
         icon: "success", title: "¡Éxito!", text: "Producto creado exitosamente.",
@@ -134,15 +107,16 @@ const CrearProductos = () => {
     <div className="page-container">
       <form onSubmit={handleGuardarProducto} className="form-container">
         <h2 className="form-title">Crear Nuevo Producto</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 mb-6 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 items-end">
           {/* Nombre */}
-          <div className="form-field md:col-span-1">
+          <div className="form-field">
             <label htmlFor="nombre" className={`floating-label ${shouldFloatLabel("nombre", nombre) ? "label-floated" : ""}`}>Nombre*</label>
             <input id="nombre" type="text" name="nombre" value={nombre} onChange={handleInputChange} onFocus={() => handleFocus("nombre")} onBlur={() => handleBlur("nombre")} className={`form-input ${!nombreValido ? "input-error" : ""}`} required />
             {!nombreValido && <p className="error-message">De 3 a 50 caracteres, sin símbolos especiales.</p>}
           </div>
+
           {/* Categoría */}
-          <div className="form-field md:col-span-1">
+          <div className="form-field">
             <label htmlFor="categoria" className={`floating-label ${shouldFloatLabel("categoria", categoria) ? "label-floated" : ""}`}>Categoría*</label>
             <select id="categoria" name="categoria" value={categoria} onChange={handleInputChange} onFocus={() => handleFocus("categoria")} onBlur={() => handleBlur("categoria")} className={`form-select ${!categoriaValida ? "input-error" : ""}`} required>
               <option value="" disabled></option>
@@ -150,33 +124,24 @@ const CrearProductos = () => {
             </select>
             {!categoriaValida && <p className="error-message">Seleccione una categoría.</p>}
           </div>
+
           {/* Foto */}
-          <div className="form-field md:col-span-1">
+          <div className="form-field">
             <label htmlFor="foto" className="file-label">Foto (Opcional)</label>
             <input id="foto" type="file" name="foto" accept="image/*" onChange={handleFileChange} className="form-input-file" />
             {foto && <span className="file-name-display">{foto.name}</span>}
           </div>
-          {/* Precio Venta */}
-          <div className="form-field md:col-span-1">
-            <label htmlFor="precioVenta" className={`floating-label ${shouldFloatLabel("precioVenta", precioVenta) ? "label-floated" : ""}`}>Precio Venta*</label>
-            <input id="precioVenta" type="number" name="precioVenta" step="0.01" value={precioVenta} onChange={handleInputChange} onFocus={() => handleFocus("precioVenta")} onBlur={() => handleBlur("precioVenta")} className={`form-input ${!precioVentaValido ? "input-error" : ""}`} required />
-            {!precioVentaValido && <p className="error-message">Precio inválido (ej: 15000.00).</p>}
-          </div>
-          {/* Stock */}
-          <div className="form-field md:col-span-1">
-            <label htmlFor="stock" className={`floating-label ${shouldFloatLabel("stock", stock) ? "label-floated" : ""}`}>Stock Inicial*</label>
-            <input id="stock" type="number" name="stock" value={stock} onChange={handleInputChange} onFocus={() => handleFocus("stock")} onBlur={() => handleBlur("stock")} className={`form-input ${!stockValido ? "input-error" : ""}`} required />
-            {!stockValido && <p className="error-message">Stock inválido (solo números enteros positivos).</p>}
-          </div>
+
           {/* Descripción */}
-          <div className="form-field md:col-span-3">
+          <div className="form-field md:col-span-2">
             <label htmlFor="descripcion" className={`floating-label ${shouldFloatLabel("descripcion", descripcion) ? "label-floated" : ""}`}>Descripción (Opcional)</label>
             <textarea id="descripcion" name="descripcion" value={descripcion} onChange={handleInputChange} onFocus={() => handleFocus("descripcion")} onBlur={() => handleBlur("descripcion")} className={`form-textarea ${!descripcionValida ? "input-error" : ""}`} rows={3} />
             {!descripcionValida && descripcion !== "" && <p className="error-message">Máximo 150 caracteres.</p>}
           </div>
         </div>
+
         <div className="button-container">
-          <button type="submit" className="button button-primary" disabled={!nombreValido || !categoriaValida || (descripcion !== "" && !descripcionValida) || !precioVentaValido || !stockValido}>
+          <button type="submit" className="button button-primary" disabled={!nombreValido || !categoriaValida || (descripcion !== "" && !descripcionValida)}>
             <FaSave /> Guardar Producto
           </button>
           <Link to="/productos/lista" className="button button-secondary"><FaArrowLeft /> Cancelar</Link>
@@ -185,4 +150,5 @@ const CrearProductos = () => {
     </div>
   );
 };
+
 export default CrearProductos;

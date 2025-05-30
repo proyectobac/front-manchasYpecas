@@ -28,6 +28,7 @@ const categoriasList = [
 
 const ListaProductos = () => {
   const [productos, setProductos] = useState([]);
+  const [productosPorCategoria, setProductosPorCategoria] = useState({});
   const [filteredProductos, setFilteredProductos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -44,21 +45,54 @@ const ListaProductos = () => {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
 
+  // Función para construir la URL completa de la imagen
+  const getImageUrl = (foto) => {
+    if (!foto) return defaultProductImage;
+    if (foto.startsWith('http')) return foto;
+    return `${process.env.REACT_APP_API_URL}${foto}`;
+  };
+
   // Obtener Productos
   const fetchProductos = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
+      // Obtener productos normales
       const responseData = await ProductosService.getAllProductos();
+      let todosLosProductos = [];
+
       if (responseData && Array.isArray(responseData.productos)) {
-        setProductos(responseData.productos);
-        setFilteredProductos(responseData.productos);
-        setTotalPages(Math.ceil(responseData.productos.length / itemsPerPage));
-      } else {
-        console.warn("Respuesta inesperada de getAllProductos:", responseData);
-        setProductos([]);
-        setFilteredProductos([]);
+        todosLosProductos = responseData.productos;
       }
+
+      // Obtener productos con imágenes por categoría
+      const responseImagenes = await ProductosService.getProductosFromImagenesByCategoria();
+      if (responseImagenes && responseImagenes.success && typeof responseImagenes.productos === 'object') {
+        // Convertir el objeto de categorías en un array plano de productos
+        const productosConImagenes = Object.values(responseImagenes.productos).flat();
+        
+        // Combinar los productos, eliminando duplicados por id_producto
+        todosLosProductos = [...todosLosProductos];
+        productosConImagenes.forEach(productoConImagen => {
+          const index = todosLosProductos.findIndex(p => p.id_producto === productoConImagen.id_producto);
+          if (index !== -1) {
+            // Si el producto existe, actualizar su información de imagen
+            todosLosProductos[index] = {
+              ...todosLosProductos[index],
+              foto: productoConImagen.foto
+            };
+          } else {
+            // Si no existe, agregar el nuevo producto
+            todosLosProductos.push(productoConImagen);
+          }
+        });
+
+        setProductosPorCategoria(responseImagenes.productos);
+      }
+
+      setProductos(todosLosProductos);
+      setFilteredProductos(todosLosProductos);
+      setTotalPages(Math.ceil(todosLosProductos.length / itemsPerPage));
     } catch (err) {
       console.error("Error fetching products:", err);
       setError(err.message || "No se pudieron cargar los productos.");
@@ -195,27 +229,162 @@ const ListaProductos = () => {
   // Ver detalles del producto
   const verProducto = (producto) => {
     Swal.fire({
-      title: producto.nombre,
+      title: '',
       html: `
-        <div class="producto-detalle">
-          <p><strong>Categoría:</strong> ${producto.categoria}</p>
-          <p><strong>Precio Costo:</strong> ${formatCurrency(producto.precioCosto)}</p>
-          <p><strong>Precio Venta:</strong> ${formatCurrency(producto.precioVenta)}</p>
-          <p><strong>Stock:</strong> 
-            <span class="${getStockSemaphoreColor(producto.stock)} px-2 py-1 rounded-full">
-              ${producto.stock ?? 0}
-            </span>
-          </p>
-          <p><strong>Descripción:</strong> ${producto.descripcion || "Sin descripción"}</p>
-          <p><strong>Estado:</strong> <span class="estado-${producto.estado.toLowerCase()}">${producto.estado}</span></p>
+        <div class="producto-detalle-container">
+          <div class="producto-imagen-container">
+            <img 
+              src="${getImageUrl(producto.foto)}" 
+              alt="${producto.nombre}"
+              class="producto-imagen"
+              onerror="this.src='${defaultProductImage}'"
+            />
+          </div>
+          <div class="producto-info-container">
+            <h2 class="producto-titulo">${producto.nombre}</h2>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Categoría</span>
+                <span class="info-value">${producto.categoria}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Precio Costo</span>
+                <span class="info-value precio">${formatCurrency(producto.precioCosto)}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Precio Venta</span>
+                <span class="info-value precio">${formatCurrency(producto.precioVenta)}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Stock</span>
+                <span class="info-value stock ${getStockSemaphoreColor(producto.stock)}">
+                  ${producto.stock ?? 0}
+                </span>
+              </div>
+              <div class="info-item descripcion">
+                <span class="info-label">Descripción</span>
+                <span class="info-value">${producto.descripcion || "Sin descripción"}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Estado</span>
+                <span class="info-value estado-badge ${producto.estado === 'Activo' ? 'estado-activo' : 'estado-inactivo'}">
+                  ${producto.estado}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       `,
-      width: "600px",
+      width: '800px',
       showCloseButton: true,
       showConfirmButton: false,
       customClass: {
-        popup: "producto-detalle-popup",
+        popup: 'producto-detalle-popup',
       },
+      didOpen: () => {
+        const style = document.createElement('style');
+        style.textContent = `
+          .producto-detalle-container {
+            display: flex;
+            gap: 2rem;
+            padding: 1rem;
+            text-align: left;
+          }
+          .producto-imagen-container {
+            flex: 0 0 300px;
+          }
+          .producto-imagen {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+          .producto-info-container {
+            flex: 1;
+          }
+          .producto-titulo {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e5e7eb;
+          }
+          .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+          }
+          .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+          }
+          .info-item.descripcion {
+            grid-column: span 2;
+          }
+          .info-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+          }
+          .info-value {
+            font-size: 1rem;
+            color: #1f2937;
+          }
+          .info-value.precio {
+            font-weight: 600;
+            color: #0891b2;
+          }
+          .info-value.stock {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            text-align: center;
+          }
+          .estado-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 500;
+            text-align: center;
+          }
+          .estado-activo {
+            background-color: #d1fae5;
+            color: #065f46;
+          }
+          .estado-inactivo {
+            background-color: #fee2e2;
+            color: #991b1b;
+          }
+          @media (max-width: 768px) {
+            .producto-detalle-container {
+              flex-direction: column;
+            }
+            .producto-imagen-container {
+              flex: 0 0 auto;
+            }
+            .info-grid {
+              grid-template-columns: 1fr;
+            }
+            .info-item.descripcion {
+              grid-column: span 1;
+            }
+          }
+        `;
+        document.head.appendChild(style);
+        Swal.getPopup()._styleElement = style;
+      },
+      willClose: () => {
+        const styleElement = Swal.getPopup()._styleElement;
+        if (styleElement && document.head.contains(styleElement)) {
+          document.head.removeChild(styleElement);
+        }
+      }
     });
   };
 
@@ -226,13 +395,16 @@ const ListaProductos = () => {
   };
 
   const handleCloseEditModal = () => {
+    if (editingProduct?.previewFoto) {
+      URL.revokeObjectURL(editingProduct.previewFoto);
+    }
     setIsEditModalOpen(false);
     setEditingProduct(null);
   };
 
   const handleEditInputChange = (e) => {
     const { name, value } = e.target;
-    setEditingProduct((prev) => (prev ? { ...prev, [name]: value } : null));
+    setEditingProduct(prev => prev ? { ...prev, [name]: value } : null);
   };
 
   const handleSaveChanges = async () => {
@@ -248,25 +420,38 @@ const ListaProductos = () => {
 
     setIsSaving(true);
     const formData = new FormData();
-    formData.append("nombre", editingProduct.nombre);
+    formData.append("nombre", editingProduct.nombre.trim());
+    formData.append("descripcion", editingProduct.descripcion?.trim() || "");
     formData.append("categoria", editingProduct.categoria);
-    formData.append("descripcion", editingProduct.descripcion || "");
+    formData.append("estado", editingProduct.estado);
+    formData.append("precioVenta", editingProduct.precioVenta || "0");
+    formData.append("stock", editingProduct.stock || "0");
+    
+    // Agregar la nueva imagen si existe
+    if (editingProduct.newFoto) {
+      formData.append("foto", editingProduct.newFoto);
+    }
 
     try {
       await ProductosService.updateProducto(editingProduct.id_producto, formData);
+      // Limpiar URL de vista previa si existe
+      if (editingProduct.previewFoto) {
+        URL.revokeObjectURL(editingProduct.previewFoto);
+      }
       Swal.fire({
+        title: "¡Éxito!",
+        text: "Producto actualizado correctamente",
         icon: "success",
-        title: "Producto actualizado",
-        timer: 1500,
+        timer: 2000,
         showConfirmButton: false,
       });
       handleCloseEditModal();
       fetchProductos();
-    } catch (err) {
-      console.error("Error updating product:", err);
+    } catch (error) {
+      console.error("Error updating product:", error);
       Swal.fire(
         "Error",
-        err.message || "No se pudo actualizar el producto.",
+        error.message || "No se pudo actualizar el producto",
         "error"
       );
     } finally {
@@ -358,6 +543,7 @@ const ListaProductos = () => {
               <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow-md">
                 <thead className="bg-gray-100">
                   <tr>
+                    <th className="px-4 py-2 text-left text-gray-600">Imagen</th>
                     <th className="px-4 py-2 text-left text-gray-600">Nombre</th>
                     <th className="px-4 py-2 text-left text-gray-600">Categoría</th>
                     <th className="px-4 py-2 text-left text-gray-600">P. Costo</th>
@@ -372,6 +558,14 @@ const ListaProductos = () => {
                     const isProductActive = producto.estado === "Activo";
                     return (
                       <tr key={producto.id_producto} className="border-t">
+                        <td className="px-4 py-2">
+                          <img 
+                            src={getImageUrl(producto.foto)} 
+                            alt={producto.nombre}
+                            className="w-16 h-16 object-cover rounded-lg"
+                            onError={(e) => { e.target.src = defaultProductImage; }}
+                          />
+                        </td>
                         <td className="px-4 py-2">{producto.nombre}</td>
                         <td className="px-4 py-2">{producto.categoria}</td>
                         <td className="px-4 py-2">{formatCurrency(producto.precioCosto)}</td>
@@ -502,107 +696,138 @@ const ListaProductos = () => {
 
       {/* Modal de Edición */}
       {isEditModalOpen && editingProduct && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50"
-          onClick={handleCloseEditModal}
-        >
-          <div
-            className="bg-white rounded-lg shadow-lg max-w-2xl w-full p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-gray-800">
-                Editar Producto: {editingProduct.nombre}
-              </h3>
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+          <div className="relative top-20 mx-auto p-5 border w-[600px] shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-medium leading-6 text-gray-900">
+                  Editar Producto - {editingProduct.nombre}
+                </h3>
+                <button
+                  onClick={handleCloseEditModal}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <FaTimes />
+                </button>
+              </div>
+              <div className="mt-4">
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="form-group">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre del Producto</label>
+                    <input
+                      type="text"
+                      name="nombre"
+                      value={editingProduct.nombre}
+                      onChange={handleEditInputChange}
+                      className="w-full px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+                      placeholder="Ingrese el nombre del producto"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Categoría</label>
+                    <select
+                      name="categoria"
+                      value={editingProduct.categoria}
+                      onChange={handleEditInputChange}
+                      className="w-full px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors appearance-none cursor-pointer"
+                    >
+                      <option value="">Seleccione una categoría</option>
+                      {categoriasList.map((cat) => (
+                        <option key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Descripción</label>
+                    <textarea
+                      name="descripcion"
+                      value={editingProduct.descripcion || ""}
+                      onChange={handleEditInputChange}
+                      rows="4"
+                      className="w-full px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors resize-none"
+                      placeholder="Ingrese una descripción del producto"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Imagen Actual</label>
+                    <div className="flex items-center space-x-4">
+                      <img 
+                        src={getImageUrl(editingProduct.foto)} 
+                        alt={editingProduct.nombre}
+                        className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                        onError={(e) => { e.target.src = defaultProductImage; }}
+                      />
+                      <div className="flex flex-col space-y-2">
+                        <input
+                          type="file"
+                          name="foto"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              setEditingProduct(prev => ({
+                                ...prev,
+                                newFoto: file,
+                                previewFoto: URL.createObjectURL(file)
+                              }));
+                            }
+                          }}
+                          className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        />
+                        {editingProduct.previewFoto && (
+                          <div className="relative">
+                            <img 
+                              src={editingProduct.previewFoto} 
+                              alt="Vista previa" 
+                              className="w-32 h-32 object-cover rounded-lg border border-blue-300"
+                            />
+                            <button
+                              onClick={() => {
+                                URL.revokeObjectURL(editingProduct.previewFoto);
+                                setEditingProduct(prev => ({
+                                  ...prev,
+                                  newFoto: null,
+                                  previewFoto: null
+                                }));
+                              }}
+                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                            >
+                              <FaTimes size={12} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-4 mt-6 px-4 py-3 bg-gray-50 border-t">
               <button
                 onClick={handleCloseEditModal}
-                className="text-gray-500 hover:text-gray-700"
-                aria-label="Cerrar"
+                className="px-6 py-2 rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
+                disabled={isSaving}
               >
-                <FaTimes />
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveChanges}
+                className="px-6 py-2 rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-50"
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Guardando...
+                  </span>
+                ) : "Guardar Cambios"}
               </button>
             </div>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSaveChanges();
-              }}
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                <div className="form-field">
-                  <label htmlFor="edit-nombre" className="block text-sm font-medium text-gray-700">
-                    Nombre*
-                  </label>
-                  <input
-                    id="edit-nombre"
-                    type="text"
-                    name="nombre"
-                    value={editingProduct.nombre || ""}
-                    onChange={handleEditInputChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                </div>
-                <div className="form-field">
-                  <label htmlFor="edit-categoria" className="block text-sm font-medium text-gray-700">
-                    Categoría*
-                  </label>
-                  <select
-                    id="edit-categoria"
-                    name="categoria"
-                    value={editingProduct.categoria || ""}
-                    onChange={handleEditInputChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  >
-                    <option value="" disabled>
-                      Seleccione...
-                    </option>
-                    {categoriasList.map((cat) => (
-                      <option key={cat.value} value={cat.value}>
-                        {cat.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-field md:col-span-2">
-                  <label htmlFor="edit-descripcion" className="block text-sm font-medium text-gray-700">
-                    Descripción
-                  </label>
-                  <textarea
-                    id="edit-descripcion"
-                    name="descripcion"
-                    value={editingProduct.descripcion || ""}
-                    onChange={handleEditInputChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
-                    rows={3}
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end space-x-4 mt-6">
-                <button
-                  type="button"
-                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 flex items-center"
-                  onClick={handleCloseEditModal}
-                  disabled={isSaving}
-                >
-                  <FaTimes className="mr-2" /> Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
-                  disabled={isSaving}
-                >
-                  {isSaving ? (
-                    "Guardando..."
-                  ) : (
-                    <>
-                      <FaSave className="mr-2" /> Guardar Cambios
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

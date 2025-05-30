@@ -20,6 +20,11 @@ const ListaRoles = () => {
         return todosLosPermisos.every(p => permisosRol.has(p.id_permiso));
     };
 
+    // Función para verificar si es el rol restringido (ID 3)
+    const esRolRestringido = (rolId) => {
+        return rolId === 3;
+    };
+
     useEffect(() => {
         cargarDatos();
     }, []);
@@ -214,7 +219,7 @@ const ListaRoles = () => {
                                 </div>
                                 <div className="flex space-x-3">
                                     {/* Botón de corona */}
-                                    {(rol.nombre === 'SuperAdmin' || 
+                                    {!esRolRestringido(rol.id_rol) && (rol.nombre === 'SuperAdmin' || 
                                       (currentUser?.rol?.nombre === 'SuperAdmin' && 
                                        currentUser?.rol?.id_rol === 1)) && (
                                         <button
@@ -239,8 +244,8 @@ const ListaRoles = () => {
                                         </button>
                                     )}
 
-                                    {/* Solo mostrar editar si no es SuperAdmin */}
-                                    {rol.nombre !== 'SuperAdmin' && (
+                                    {/* Solo mostrar editar si no es SuperAdmin y no es rol restringido */}
+                                    {rol.nombre !== 'SuperAdmin' && !esRolRestringido(rol.id_rol) && (
                                         <button
                                             onClick={() => handleEditRol(rol)}
                                             className="text-blue-600 hover:text-blue-900"
@@ -249,8 +254,8 @@ const ListaRoles = () => {
                                         </button>
                                     )}
 
-                                    {/* Solo mostrar eliminar si no es SuperAdmin y no es Admin */}
-                                    {rol.nombre !== 'SuperAdmin' && !isAdmin && (
+                                    {/* Solo mostrar eliminar si no es SuperAdmin, no es Admin y no es rol restringido */}
+                                    {rol.nombre !== 'SuperAdmin' && !isAdmin && !esRolRestringido(rol.id_rol) && (
                                         <button
                                             onClick={() => handleDeleteRol(rol.id_rol)}
                                             className="text-red-600 hover:text-red-900"
