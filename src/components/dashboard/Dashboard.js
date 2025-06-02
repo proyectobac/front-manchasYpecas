@@ -157,15 +157,27 @@ const Dashboard = () => {
 
                 const productosAgotados = productos.filter(p => p.stock <= ESTADOS_STOCK.CRITICO.max).length;
                 const ventasHoy = ventas.filter(v => 
-                    new Date(v.fecha).toDateString() === new Date().toDateString()
+                    new Date(v.fecha_venta).toDateString() === new Date().toDateString()
                 ).length;
 
                 const ventasRecientes = ventas
-                    .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
-                    .slice(0, 5);
+                    .sort((a, b) => new Date(b.fecha_venta) - new Date(a.fecha_venta))
+                    .slice(0, 5)
+                    .map(venta => ({
+                        id_venta: venta.id_venta,
+                        fecha_venta: venta.fecha_venta,
+                        total_venta: venta.total_venta,
+                        estado_venta: venta.estado_venta,
+                        nombre_cliente: venta.nombre_cliente,
+                        telefono_cliente: venta.telefono_cliente,
+                        direccion_cliente: venta.direccion_cliente,
+                        ciudad_cliente: venta.ciudad_cliente,
+                        notas_cliente: venta.notas_cliente,
+                        detalles: venta.detalles
+                    }));
 
                 setStats({
-                    totalVentas: ventas.length,
+                    totalVentas: ventasResponse.data.total || 0,
                     totalProductos: productos.length,
                     totalUsuarios: usuarios.length,
                     ventasHoy,
@@ -192,14 +204,14 @@ const Dashboard = () => {
         for (let i = 0; i < 6; i++) {
             const mes = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
             const ventasDelMes = ventas.filter(v => {
-                const fechaVenta = new Date(v.fecha);
+                const fechaVenta = new Date(v.fecha_venta);
                 return fechaVenta.getMonth() === mes.getMonth() &&
                        fechaVenta.getFullYear() === mes.getFullYear();
             });
             ultimosMeses.push({
                 mes: mes.toLocaleString('default', { month: 'short' }),
                 ventas: ventasDelMes.length,
-                ingresos: ventasDelMes.reduce((acc, v) => acc + v.total, 0)
+                ingresos: ventasDelMes.reduce((acc, v) => acc + parseFloat(v.total_venta), 0)
             });
         }
         return ultimosMeses.reverse();
@@ -533,23 +545,74 @@ const Dashboard = () => {
                             </h3>
                             <div className="mt-5">
                                 <div className="flow-root">
-                                    <ul className="-my-5 divide-y divide-gray-200">
+                                    <ul className="-my-3 divide-y divide-gray-200">
                                         {stats.ventasRecientes.map((venta) => (
-                                            <li key={venta.id_venta} className="py-4">
-                                                <div className="flex items-center space-x-4">
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-medium text-gray-900 truncate">
-                                                            Orden #{venta.id_venta}
-                                                        </p>
-                                                        <p className="text-sm text-gray-500">
-                                                            {new Date(venta.fecha).toLocaleDateString()}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                                            {formatCurrency(venta.total)}
+                                            <li key={venta.id_venta} className="py-3">
+                                                <div className="flex flex-col space-y-2">
+                                                    {/* Encabezado y estado */}
+                                                    <div className="flex justify-between items-center">
+                                                        <div className="flex items-center space-x-3">
+                                                            <span className="text-lg font-medium text-gray-900">
+                                                                Orden #{venta.id_venta}
+                                                            </span>
+                                                            <span className="text-sm text-gray-500">
+                                                                {new Date(venta.fecha_venta).toLocaleDateString('es-ES', {
+                                                                    day: 'numeric',
+                                                                    month: 'long',
+                                                                    year: 'numeric',
+                                                                    hour: '2-digit',
+                                                                    minute: '2-digit'
+                                                                })}
+                                                            </span>
+                                                        </div>
+                                                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                                                            venta.estado_venta === 'Completada' 
+                                                                ? 'bg-green-100 text-green-800'
+                                                                : 'bg-yellow-100 text-yellow-800'
+                                                        }`}>
+                                                            {venta.estado_venta}
                                                         </span>
                                                     </div>
+
+                                                    {/* Info del cliente y productos en una línea */}
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="text-sm">
+                                                            <span className="text-gray-500">Cliente: </span>
+                                                            <span className="font-medium text-gray-900">{venta.nombre_cliente}</span>
+                                                            <span className="text-gray-500 ml-2">Tel: </span>
+                                                            <span className="text-gray-900">{venta.telefono_cliente}</span>
+                                                        </div>
+                                                        <div className="text-sm text-right">
+                                                            <span className="text-gray-500">Dirección: </span>
+                                                            <span className="text-gray-900">{venta.direccion_cliente}, {venta.ciudad_cliente}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Productos y total */}
+                                                    <div className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                                                        <div className="text-sm">
+                                                            <span className="text-gray-500">Productos: </span>
+                                                            {venta.detalles?.map((detalle, idx) => (
+                                                                <span key={idx} className="text-gray-900">
+                                                                    {detalle.cantidad}x {detalle.producto.nombre}
+                                                                    {idx < venta.detalles.length - 1 ? ', ' : ''}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <span className="text-sm text-gray-500 mr-2">Total:</span>
+                                                            <span className="font-semibold text-indigo-600">
+                                                                {formatCurrency(venta.total_venta)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Notas del cliente si existen */}
+                                                    {venta.notas_cliente && (
+                                                        <div className="text-sm text-gray-500 italic">
+                                                            Nota: {venta.notas_cliente}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </li>
                                         ))}

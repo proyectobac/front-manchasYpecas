@@ -19,7 +19,7 @@ const VentasService = {
      * Obtiene la lista de bancos PSE desde Wompi.
      * Esto es seguro hacerlo desde el frontend usando la clave pública.
      */
-    
+
     obtenerBancosPSE: async () => {
         try {
             // Primero intentamos obtener los bancos desde nuestro backend
@@ -64,10 +64,10 @@ const VentasService = {
             };
         } catch (error) {
             console.error('Error al obtener la lista de bancos PSE:', error);
-            throw new Error(error.response?.data?.error?.message || 
-                          error.response?.data?.message || 
-                          error.message || 
-                          'Error al obtener la lista de bancos.');
+            throw new Error(error.response?.data?.error?.message ||
+                error.response?.data?.message ||
+                error.message ||
+                'Error al obtener la lista de bancos.');
         }
     },
 
@@ -77,28 +77,25 @@ const VentasService = {
      * @returns {Promise<object>} - La respuesta del backend con los detalles del pago.
      */
     consultarEstadoPagoPorReferencia: async (referencia) => {
-        const token = localStorage.getItem('token'); // Asumiendo que guardas el token así
+        const token = localStorage.getItem('token');
         try {
-            // El endpoint puede ser genérico o específico de PSE, ajusta según tu backend
-            // Ejemplo: /api/pagos/estado/:referencia o /api/pagos/pse/estado/:referencia
             const response = await axios.get(`${API_BASE_URL}/api/pagos/estado/${referencia}`, {
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(token && { 'Authorization': `Bearer ${token}` }) // Enviar token si existe, algunos endpoints pueden no requerirlo
+                    ...(token && { 'Authorization': `Bearer ${token}` })
                 }
             });
-            return response.data; // { success: true, pago: { ... } }
+            return response.data;
         } catch (error) {
             console.error('Error al consultar estado del pago:', error.response?.data || error.message);
             const errorMessage = error.response?.data?.error ||
-                                 error.response?.data?.msg ||
-                                 error.response?.data?.message ||
-                                 'Error al obtener el estado del pago.';
-            // Devuelve un objeto de error consistente para que el componente lo maneje
+                error.response?.data?.msg ||
+                error.response?.data?.message ||
+                'Error al obtener el estado del pago.';
             return { success: false, error: errorMessage, pago: null };
         }
     },
-    
+
     // Asegúrate de tener este método (o uno similar) si `PaymentStatusPage` lo usa
     // o si tu backend se encarga de limpiar el carrito post-pago
     // clearCart: async () => { /* Lógica para limpiar el carrito, quizás una llamada al backend o local */ },
@@ -107,16 +104,16 @@ const VentasService = {
 
     // CORRECCIÓN IMPORTANTE en iniciarPagoPSEConBackend
     iniciarPagoPSEConBackend: async (datosParaPago) => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            throw new Error("Debes iniciar sesión para realizar un pago.");
-        }
-
         try {
-            console.log('Iniciando pago PSE con datos:', datosParaPago);
-            
-            const response = await axios.post(`${API_BASE_URL}/api/pagos/pse/iniciar`, 
-                datosParaPago,
+            const token = localStorage.getItem('token');
+            const paymentDataWithRedirect = {
+                ...datosParaPago,
+                redirect_url: `${process.env.REACT_APP_WOMPI_REDIRECT_URL}/resultado-pago/${datosParaPago.reference}`
+            };
+
+            const response = await axios.post(
+                `${API_BASE_URL}/api/pagos/pse/iniciar`,
+                paymentDataWithRedirect,
                 {
                     headers: {
                         'Content-Type': 'application/json',
@@ -125,22 +122,14 @@ const VentasService = {
                 }
             );
 
-            console.log('Respuesta del backend:', response.data);
-
-            if (!response.data.success) {
-                throw new Error(response.data.error || 'Error al iniciar el pago PSE');
+            if (response.data.redirect_url) {
+                window.location.href = response.data.redirect_url;
             }
 
             return response.data;
         } catch (error) {
-            console.error('Error detallado:', error.response || error);
-            
-            const errorMessage = error.response?.data?.error || 
-                               error.response?.data?.message ||
-                               error.message ||
-                               'Error al procesar el pago PSE.';
-                               
-            throw new Error(errorMessage);
+            console.error('Error al iniciar pago PSE:', error);
+            throw error;
         }
     },
     /**
@@ -148,7 +137,7 @@ const VentasService = {
      */
     createVenta: async (orderData) => {
         try {
-            const response = await axios.post(`${API_VENTAS_URL}/ventas`, orderData, { // Asegúrate que la URL sea /ventas
+            const response = await axios.post(`${API_VENTAS_URL}/ventas`, orderData, {
                 headers: {
                     'Content-Type': 'application/json',
                 }
@@ -178,6 +167,21 @@ const VentasService = {
         } catch (error) {
             console.error('Error al actualizar el estado de la venta:', error);
             throw new Error(`Error al actualizar el estado de la venta: ${error.message}`);
+        }
+    },
+
+    getAllVentas: async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`${API_VENTAS_URL}/ventas`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error al obtener las ventas:', error);
+            throw new Error(error.response?.data?.msg || 'Error al obtener las ventas');
         }
     }
 };

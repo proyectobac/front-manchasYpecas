@@ -22,7 +22,7 @@ const ProductoService = {
       // La ruta en tu backend es /api/productos/productos-imagenes
       // Asegúrate que tu Server.js monte las rutas de productos en /api/productos
       // y que dentro de productosRoutes.js tengas la ruta /productos-imagenes
-      const response = await axios.get(`${API_PRODUCTOS_URL1}`, { // Ajusta la ruta completa si es necesario
+      const response = await axios.get(`${API_PRODUCTOS_URL}`, { // Ajusta la ruta completa si es necesario
         // Este endpoint podría no requerir token si es para la tienda pública,
         // pero si lo requiere, descomenta las cabeceras:
         // headers: {

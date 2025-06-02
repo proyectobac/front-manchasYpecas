@@ -22,6 +22,7 @@ import CrearEmpleados from "./components/empleados/crearEmpleados/index";
 import ListaEmpleados from "./components/empleados/listaEmpleados/index";
 import PermisoDasboardEmpleado from "./components/empleados/PerfilEmpleado/index";
 import Tienda from "./components/tienda/tienda";
+import ListaVentas from "./components/ventas/index";
 import PaymentStatusPage from './components/PaymentStatusPage';
 
 // Nuevos componentes de usuarios y roles
@@ -53,6 +54,7 @@ const App = () => {
                 {/* Rutas protegidas que requieren autenticación */}
                 <Route path="productos/crear" element={<CrearProductos />} />
                 <Route path="productos/lista" element={<ListaProductos />} />
+                <Route path="/lista/ventas" element={<ListaVentas />} />
                 <Route path="proveedor/crear" element={<CrearProveedor />} />
                 <Route path="proveedor/lista" element={<ListaProveedores />} />
                 <Route path="compras/crear" element={<CrearCompras />} />

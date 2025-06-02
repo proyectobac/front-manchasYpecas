@@ -27,6 +27,8 @@ const CheckPermission = ({ route }) => {
     return false;
   }
   const permisosRutas = userInfo.rol.permisos.map((p) => p.ruta);
+  console.log('Permisos disponibles:', permisosRutas);
+  console.log('Ruta a verificar:', route);
   const hasPermission = permisosRutas.includes(route);
   console.log(`Checking permission for route ${route}:`, hasPermission);
   return hasPermission;
@@ -73,12 +75,19 @@ const menuItems = [
       { name: "Lista Compras", path: "/compras/lista", icon: faList },
     ],
   },
+    {
+    name: "Ventas",
+    icon: faBoxes,
+    subItems: [
+      { name: "Ventas", path: "lista/ventas", icon: faList },
+    ],
+  },
   {
     name: "Empleados",
     icon: faUsers,
     subItems: [
       { name: "Lista Empleados", path: "/empleados/lista", icon: faList },
-      { name: "Mi Portal", path: "/permisoDasboardEmpleado", icon: faUserPlus },
+      { name: "Mi Portal", path: "/permisoDasboard/Empleado", icon: faUserPlus },
     ],
   },
   {

@@ -88,7 +88,7 @@ const Login = () => {
             destination = '/inicio'; // O tu dashboard de admin
             break;
           case 'empleado':
-            destination = '/permisoDasboardEmpleado'; // Dashboard de empleado
+            destination = '/tienda'; // Dashboard de empleado
             break;
           case 'cliente':
             destination = '/tienda'; // Los clientes suelen ir a la tienda

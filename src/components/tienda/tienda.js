@@ -74,10 +74,9 @@ const carouselImages = [
 
 
 const TiendaCliente = () => {
-    // Estado para todos los productos cargados, agrupados por categoría desde el backend
-    const [productosPorCategoria, setProductosPorCategoria] = useState({});
-    const [productosNormales, setProductosNormales] = useState([]); // Nuevo estado para productos normales
-    // Estado para las categorías disponibles (los nombres/claves del objeto anterior)
+    // Estado para todos los productos (solo desde getAllProductos)
+    const [productos, setProductos] = useState([]);
+    // Estado para las categorías disponibles (extraídas de los productos)
     const [categorias, setCategorias] = useState([]);
     
     const [selectedCategoria, setSelectedCategoria] = useState('TODAS');
@@ -103,13 +102,13 @@ const TiendaCliente = () => {
     const location = useLocation();
     const isAuthenticated = () => !!localStorage.getItem('token');
 
-    const loadUserDetails = async () => { // No necesita userData como argumento si lo toma de localStorage
+    const loadUserDetails = async () => {
         const userDataString = localStorage.getItem('user');
         if (!userDataString) return;
 
         try {
             const storedUser = JSON.parse(userDataString);
-            if (storedUser && storedUser.userId) { // Asegúrate que `userId` esté en el objeto 'user' guardado
+            if (storedUser && storedUser.userId) {
                 const userDetails = await UsuariosService.getUserDetails(storedUser.userId);
                 console.log("Datos completos del usuario cargados:", userDetails);
                 
@@ -121,14 +120,12 @@ const TiendaCliente = () => {
                     email: userDetails.correo || prev.email,
                     telefono: userDetails.telefono || prev.telefono,
                     numeroDocumento: userDetails.documento || prev.numeroDocumento,
-                    // No sobrescribir dirección/ciudad si ya están llenos por el usuario y no vienen del perfil
-                    direccion: prev.direccion || userDetails.direccion_cliente || '', // Asume que puede venir de 'direccion_cliente'
-                    ciudad: prev.ciudad || userDetails.ciudad_cliente || '',       // Asume que puede venir de 'ciudad_cliente'
+                    direccion: prev.direccion || userDetails.direccion_cliente || '',
+                    ciudad: prev.ciudad || userDetails.ciudad_cliente || '',
                 }));
             }
         } catch (error) {
             console.error("Error al cargar detalles del usuario:", error);
-            // No mostrar Swal aquí para no interrumpir, solo loguear.
         }
     };
     
@@ -157,106 +154,28 @@ const TiendaCliente = () => {
                     sessionStorage.removeItem('pendingOrder');
                 }
             } else {
-                // Si no hay pending order, intentar cargar datos del usuario logueado
                 loadUserDetails();
             }
         }
-    }, []); // Solo al montar
+    }, []);
 
     useEffect(() => {
         if (cart.length > 0) {
             localStorage.setItem('cart', JSON.stringify(cart));
-        } else if (localStorage.getItem('cart')) { // Solo remover si existe
+        } else if (localStorage.getItem('cart')) {
             localStorage.removeItem('cart');
         }
     }, [cart]);
 
-    const fetchTodosLosProductos = useCallback(async () => {
+    const fetchProductosYCategorias = useCallback(async () => {
         try {
+            setLoading(true);
+            setError(null);
+            
             const response = await ProductosService.getAllProductos();
             if (response && response.productos) {
-                // Aplicar el mismo filtro que usamos para los otros productos
+                // Filtrar productos válidos
                 const productosFiltrados = response.productos.filter(p => {
-                    const precio = parseFloat(p.precioVenta);
-                    const cumpleFiltros = p.estado === 'Activo' && 
-                           !isNaN(precio) && 
-                           precio > 0 && 
-                           parseInt(p.stock) > 0;
-                    
-                    if (!cumpleFiltros) {
-                        console.log('Producto filtrado (getAllProductos):', p.nombre, {
-                            activo: p.estado === 'Activo',
-                            precioValido: !isNaN(precio) && precio > 0,
-                            stockValido: parseInt(p.stock) > 0
-                        });
-                    }
-                    return cumpleFiltros;
-                });
-                
-                console.log('Productos filtrados (getAllProductos):', productosFiltrados);
-                setProductosNormales(productosFiltrados);
-            }
-        } catch (error) {
-            console.error('Error al obtener todos los productos:', error);
-        }
-    }, []);
-
-    const fetchProductosYCategorias = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const responseData = await ProductosService.getProductosFromImagenesByCategoria();
-            console.log('Productos recibidos:', responseData);
-            
-            if (responseData && responseData.success && typeof responseData.productos === 'object') {
-                setProductosPorCategoria(responseData.productos);
-                
-                const categoriasObtenidas = Object.keys(responseData.productos);
-                console.log('Categorías obtenidas:', categoriasObtenidas);
-                
-                const categoriasValidas = categoriasObtenidas.filter(catKey => 
-                    Array.isArray(responseData.productos[catKey]) && 
-                    responseData.productos[catKey].length > 0
-                );
-                console.log('Categorías válidas:', categoriasValidas);
-
-                const categoriasFormateadas = ['TODAS', ...categoriasValidas].map(catKey => ({
-                    value: catKey,
-                    label: catKey === 'TODAS' ? 'Todas las Categorías' : (catKey.charAt(0).toUpperCase() + catKey.slice(1).toLowerCase().replace(/_/g, ' '))
-                }));
-                
-                setCategorias(categoriasFormateadas);
-                setSelectedCategoria('TODAS');
-            } else {
-                throw new Error(responseData.error || 'No se pudieron cargar los productos.');
-            }
-        } catch (err) {
-            setError(err.message || "Error al cargar productos.");
-            setProductosPorCategoria({});
-            setCategorias([{ value: 'TODAS', label: 'Todas las Categorías' }]);
-            console.error("Error en fetchProductosYCategorias:", err);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchProductosYCategorias();
-        fetchTodosLosProductos(); // Llamar a la nueva función
-    }, [fetchProductosYCategorias, fetchTodosLosProductos]);
-
-    useEffect(() => {
-        if (loading || (Object.keys(productosPorCategoria).length === 0 && productosNormales.length === 0)) {
-            setFilteredProductos([]);
-            return;
-        }
-        
-        let results = [];
-        if (selectedCategoria === 'TODAS') {
-            // Combinar productos de ambas fuentes
-            const productosDesdeImagenes = Object.values(productosPorCategoria).flat();
-            results = [...productosDesdeImagenes, ...productosNormales]
-                .filter(p => {
                     const precio = parseFloat(p.precioVenta);
                     const cumpleFiltros = p.estado === 'Activo' && 
                            !isNaN(precio) && 
@@ -272,44 +191,90 @@ const TiendaCliente = () => {
                     }
                     return cumpleFiltros;
                 });
-        } else {
-            // Combinar productos de la categoría seleccionada de ambas fuentes
-            const productosDesdeImagenes = productosPorCategoria[selectedCategoria] || [];
-            const productosDesdeNormal = productosNormales.filter(p => p.categoria === selectedCategoria);
-            results = [...productosDesdeImagenes, ...productosDesdeNormal]
-                .filter(p => {
-                    const precio = parseFloat(p.precioVenta);
-                    const cumpleFiltros = p.estado === 'Activo' && 
-                           !isNaN(precio) && 
-                           precio > 0 && 
-                           parseInt(p.stock) > 0;
-                    
-                    if (!cumpleFiltros) {
-                        console.log('Producto filtrado en categoría específica:', p.nombre, {
-                            activo: p.estado === 'Activo',
-                            precioValido: !isNaN(precio) && precio > 0,
-                            stockValido: parseInt(p.stock) > 0
-                        });
-                    }
-                    return cumpleFiltros;
-                });
+                
+                console.log('Productos filtrados:', productosFiltrados);
+                setProductos(productosFiltrados);
+                
+                // Extraer categorías únicas de los productos
+                const categoriasUnicas = [...new Set(productosFiltrados.map(p => p.categoria).filter(Boolean))];
+                const categoriasConTodas = [
+                    { value: 'TODAS', label: 'Todas' },
+                    ...categoriasUnicas.map(cat => ({ value: cat, label: cat }))
+                ];
+                
+                setCategorias(categoriasConTodas);
+                console.log('Categorías disponibles:', categoriasConTodas);
+            } else {
+                setError('No se pudieron cargar los productos');
+            }
+        } catch (error) {
+            console.error('Error al obtener productos:', error);
+            setError('Error al cargar productos. Intenta nuevamente.');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchProductosYCategorias();
+    }, [fetchProductosYCategorias]);
+
+    useEffect(() => {
+        if (loading || productos.length === 0) {
+            setFilteredProductos([]);
+            return;
         }
         
-        // Eliminar duplicados basados en id_producto
-        results = results.filter((producto, index, self) =>
-            index === self.findIndex((p) => p.id_producto === producto.id_producto)
-        );
+        let results = [];
+        if (selectedCategoria === 'TODAS') {
+            results = productos.filter(p => {
+                const precio = parseFloat(p.precioVenta);
+                const cumpleFiltros = p.estado === 'Activo' && 
+                       !isNaN(precio) && 
+                       precio > 0 && 
+                       parseInt(p.stock) > 0;
+                
+                if (!cumpleFiltros) {
+                    console.log('Producto filtrado en visualización:', p.nombre, {
+                        activo: p.estado === 'Activo',
+                        precioValido: !isNaN(precio) && precio > 0,
+                        stockValido: parseInt(p.stock) > 0
+                    });
+                }
+                return cumpleFiltros;
+            });
+        } else {
+            results = productos.filter(p => {
+                const precio = parseFloat(p.precioVenta);
+                const cumpleFiltros = p.estado === 'Activo' && 
+                       !isNaN(precio) && 
+                       precio > 0 && 
+                       parseInt(p.stock) > 0 &&
+                       p.categoria === selectedCategoria;
+                
+                if (!cumpleFiltros) {
+                    console.log('Producto filtrado en categoría específica:', p.nombre, {
+                        activo: p.estado === 'Activo',
+                        precioValido: !isNaN(precio) && precio > 0,
+                        stockValido: parseInt(p.stock) > 0,
+                        categoriaCorrecta: p.categoria === selectedCategoria
+                    });
+                }
+                return cumpleFiltros;
+            });
+        }
         
-        console.log('Productos filtrados:', results);
+        console.log('Productos filtrados para mostrar:', results);
         setFilteredProductos(results);
-    }, [selectedCategoria, productosPorCategoria, productosNormales, loading]);
+    }, [selectedCategoria, productos, loading]);
 
-    const formatCurrency = (value) => { /* ... sin cambios ... */ 
+    const formatCurrency = (value) => {
         const numericValue = typeof value === 'string' ? parseFloat(value) : value;
         if (isNaN(numericValue) || numericValue === null || numericValue === undefined) return '$ 0';
         return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(numericValue);
     };
-    const showToast = (message, icon = 'success') => { /* ... sin cambios ... */ 
+
+    const showToast = (message, icon = 'success') => {
         const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true, didOpen: (toast) => { toast.addEventListener('mouseenter', Swal.stopTimer); toast.addEventListener('mouseleave', Swal.resumeTimer); } });
         Toast.fire({ icon: icon, title: message });
     };
@@ -353,11 +318,13 @@ const TiendaCliente = () => {
             return newCart;
         });
     };
-    const removeFromCart = (productId) => { /* ... sin cambios ... */ 
+
+    const removeFromCart = (productId) => {
         setCart(prevCart => prevCart.filter(item => item.id_producto !== productId));
         showToast('Producto eliminado', 'info');
     };
-    const updateCartQuantity = (productId, amount) => { /* ... sin cambios ... */ 
+
+    const updateCartQuantity = (productId, amount) => {
         setCart(prevCart => {
             let itemToRemove = false;
             const newCart = prevCart.map(item => {
@@ -374,14 +341,16 @@ const TiendaCliente = () => {
             return newCart;
         });
     };
+
     const cartTotal = useMemo(() => cart.reduce((total, item) => total + (item.precioVenta * item.quantity || 0), 0), [cart]);
     const cartItemCount = useMemo(() => cart.reduce((count, item) => count + item.quantity, 0), [cart]);
-    const handleCheckoutInfoChange = (e) => { /* ... sin cambios ... */ 
+
+    const handleCheckoutInfoChange = (e) => {
         const { name, value } = e.target;
         setCheckoutInfo(prev => ({ ...prev, [name]: value }));
     };
     
-    const handleProceedToPaymentFromCheckout = () => { /* ... sin cambios ... */ 
+    const handleProceedToPaymentFromCheckout = () => {
         if (!checkoutInfo.nombreCompleto || !checkoutInfo.telefono || !checkoutInfo.direccion || !checkoutInfo.ciudad) {
             Swal.fire('Campos Requeridos', 'Completa todos los campos de envío (*).', 'warning'); return;
         }
@@ -405,15 +374,41 @@ const TiendaCliente = () => {
         }
     };
     
+    // Función para limpiar el carrito completamente
+    const clearCart = useCallback(() => {
+        setCart([]);
+        localStorage.removeItem('cart');
+        sessionStorage.removeItem('pendingOrder');
+    }, []);
+
+    // Efecto para limpiar el carrito cuando se completa una orden
+    useEffect(() => {
+        if (ordenCompletada) {
+            clearCart();
+        }
+    }, [ordenCompletada, clearCart]);
+
+    // Efecto para verificar si hay una orden completada en el localStorage
+    useEffect(() => {
+        const orderCompleted = localStorage.getItem('orderCompleted');
+        if (orderCompleted) {
+            clearCart();
+            localStorage.removeItem('orderCompleted');
+        }
+    }, [clearCart]);
+
     const handleFinalizeOrder = async (paymentResult) => {
         setIsPlacingOrder(true);
         const { success, data, paymentMethod, isRedirect, redirectUrl } = paymentResult;
 
         if (isRedirect && redirectUrl) {
+            // Guardar el estado de la orden antes de redirigir
+            localStorage.setItem('orderCompleted', 'true');
             window.location.href = redirectUrl;
             setIsPlacingOrder(false);
             return;
         }
+
         if (success) {
             const orderDataToSave = {
                 cliente: checkoutInfo,
@@ -431,8 +426,8 @@ const TiendaCliente = () => {
             try {
                 setOrdenCompletada({...orderDataToSave, fecha: new Date()});
                 setViewMode('success');
-                setCart([]);
-                localStorage.removeItem('cart');
+                clearCart();
+                localStorage.setItem('orderCompleted', 'true');
             } catch (error) {
                 console.error("Error finalizando orden:", error);
                 Swal.fire('Error', error.message || 'Hubo un problema al finalizar la orden.', 'error');
@@ -450,22 +445,23 @@ const TiendaCliente = () => {
         setIsPlacingOrder(false);
     };
 
-    // Lógica de carrusel (sin cambios)
+    // Lógica de carrusel
     useEffect(() => {
         let interval;
         if (isAutoPlaying && carouselImages.length > 0) {
             interval = setInterval(() => {
                 setCurrentSlide((prev) => (prev === carouselImages.length - 1 ? 0 : prev + 1));
-            }, 5000); // Cambiado a 5 segundos para el carrusel
+            }, 5000);
         }
         return () => clearInterval(interval);
     }, [isAutoPlaying, carouselImages.length]);
 
-    const nextSlide = () => { /* ... sin cambios ... */ 
+    const nextSlide = () => {
         setCurrentSlide((prev) => (prev === carouselImages.length - 1 ? 0 : prev + 1));
         setIsAutoPlaying(false); setTimeout(() => setIsAutoPlaying(true), 10000);
     };
-    const prevSlide = () => { /* ... sin cambios ... */ 
+
+    const prevSlide = () => {
         setCurrentSlide((prev) => (prev === 0 ? carouselImages.length - 1 : prev - 1));
         setIsAutoPlaying(false); setTimeout(() => setIsAutoPlaying(true), 10000);
     };
@@ -476,13 +472,13 @@ const TiendaCliente = () => {
                 <FaStore className="inline mr-2 text-indigo-600" /> Explora Nuestras Categorías
             </h2>
             <Link
-                to={isAuthenticated() ? "/perfil" : "/login"} // Cambia a /perfil si está logueado
+                to={isAuthenticated() ? "/perfil" : "/login"}
                 className="fixed top-4 right-4 bg-white text-indigo-600 p-3 rounded-full shadow-lg hover:bg-indigo-100 hover:shadow-xl transition-all duration-200 z-50 flex items-center justify-center"
                 title={isAuthenticated() ? "Mi Cuenta" : "Iniciar Sesión"}
             >
                 <FaUserCircle size={24} />
             </Link>
-            {categorias.length > 1 ? ( // Solo mostrar si hay más que 'TODAS'
+            {categorias.length > 1 ? (
                 <div className="flex flex-wrap justify-center sm:justify-start gap-3">
                     {categorias.map(cat => (
                         <button
@@ -504,7 +500,7 @@ const TiendaCliente = () => {
         </div>
     );
 
-    const renderCarousel = () => ( /* ... sin cambios ... */ 
+    const renderCarousel = () => (
         <div className="mb-8 relative overflow-hidden rounded-lg shadow-lg">
             <div className="relative h-48 md:h-64 lg:h-72 w-full bg-gradient-to-r from-indigo-500 to-purple-600 overflow-hidden">
                 <div className="h-full w-full relative">
@@ -526,7 +522,7 @@ const TiendaCliente = () => {
         </div>
     );
 
-    const renderProductCard = (producto) => { /* ... sin cambios, pero se asegura que `producto.foto` use la URL completa si es necesario */
+    const renderProductCard = (producto) => {
         // Construir URL completa para la imagen si `producto.foto` es una ruta relativa del backend
         const imageUrl = producto.foto 
             ? (producto.foto.startsWith('http') ? producto.foto : `${process.env.REACT_APP_API_URL}${producto.foto}`) 
