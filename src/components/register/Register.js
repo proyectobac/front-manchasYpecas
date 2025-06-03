@@ -11,6 +11,7 @@ import {
   faEye,
   faEyeSlash
 } from '@fortawesome/free-solid-svg-icons';
+import Swal from 'sweetalert2';
 import logoBarberia from '../../assets/images/login1.jpg';
 
 const Register = () => {
@@ -26,12 +27,85 @@ const Register = () => {
   const [error, setError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    // Validaciones específicas por campo
+    let isValid = true;
+    let errorMessage = '';
+    let finalValue = value;
+
+    switch(name) {
+      case 'nombre_usuario':
+        // Solo letras y máximo 10 caracteres
+        if (!/^[a-zA-Z\s]*$/.test(value)) {
+          isValid = false;
+          errorMessage = 'Solo se permiten letras';
+        } else if (value.length > 10) {
+          isValid = false;
+          errorMessage = 'Máximo 10 caracteres';
+        }
+        break;
+
+      case 'telefono':
+        // Solo permitir números y limitar a 10 dígitos
+        finalValue = value.replace(/[^0-9]/g, '').slice(0, 10);
+        break;
+
+      case 'documento':
+        // Solo permitir números y limitar a 10 dígitos
+        finalValue = value.replace(/[^0-9]/g, '').slice(0, 10);
+        break;
+
+      case 'contrasena':
+        if (value.length > 10) {
+          isValid = false;
+          errorMessage = 'Máximo 10 caracteres';
+        }
+        // Verificar si ya existe una contraseña de confirmación
+        if (formData.confirmarContrasena) {
+          if (value !== formData.confirmarContrasena) {
+            setFieldErrors(prev => ({
+              ...prev,
+              confirmarContrasena: 'Las contraseñas no coinciden'
+            }));
+          } else {
+            setFieldErrors(prev => ({
+              ...prev,
+              confirmarContrasena: ''
+            }));
+          }
+        }
+        break;
+
+      case 'confirmarContrasena':
+        if (value.length > 10) {
+          isValid = false;
+          errorMessage = 'Máximo 10 caracteres';
+        }
+        // Verificar en tiempo real si las contraseñas coinciden
+        if (value !== formData.contrasena) {
+          isValid = false;
+          errorMessage = 'Las contraseñas no coinciden';
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    // Actualizar errores del campo
+    setFieldErrors(prev => ({
+      ...prev,
+      [name]: !isValid ? errorMessage : ''
+    }));
+
+    // Actualizar el valor del campo
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: finalValue
     }));
   };
 
@@ -39,8 +113,8 @@ const Register = () => {
     if (!formData.nombre_usuario.trim()) {
       throw new Error('El nombre de usuario es requerido');
     }
-    if (!/^[a-zA-Z0-9_-]*$/.test(formData.nombre_usuario)) {
-      throw new Error('El nombre de usuario solo puede contener letras, números, guiones y guiones bajos');
+    if (!/^[a-zA-Z\s]*$/.test(formData.nombre_usuario)) {
+      throw new Error('El nombre de usuario solo puede contener letras y espacios');
     }
     if (!formData.correo.trim()) {
       throw new Error('El correo electrónico es requerido');
@@ -54,17 +128,28 @@ const Register = () => {
     if (formData.contrasena !== formData.confirmarContrasena) {
       throw new Error('Las contraseñas no coinciden');
     }
-    if (formData.telefono && !/^\d{10}$/.test(formData.telefono)) {
+    if (formData.telefono && formData.telefono.length !== 10) {
       throw new Error('El teléfono debe tener 10 dígitos');
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
 
     try {
       validateForm();
+
+      // Mostrar loading
+      Swal.fire({
+        title: 'Registrando usuario',
+        text: 'Por favor espere...',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        willOpen: () => {
+          Swal.showLoading();
+        }
+      });
 
       const userData = {
         ...formData,
@@ -76,8 +161,15 @@ const Register = () => {
       const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/usuarios/usuario`, userData);
 
       if (response.data) {
-        // Mostrar mensaje de éxito y redirigir al login
-        alert('Registro exitoso. Por favor inicia sesión.');
+        // Mostrar mensaje de éxito
+        await Swal.fire({
+          icon: 'success',
+          title: '¡Registro exitoso!',
+          text: 'Tu cuenta ha sido creada correctamente',
+          timer: 1500,
+          showConfirmButton: false
+        });
+        
         navigate('/login');
       }
     } catch (error) {
@@ -89,7 +181,14 @@ const Register = () => {
         errorMessage = error.message;
       }
       
-      setError(errorMessage);
+      // Mostrar mensaje de error
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: errorMessage,
+        confirmButtonText: 'Aceptar',
+        confirmButtonColor: '#3085d6'
+      });
     }
   };
 
@@ -130,10 +229,15 @@ const Register = () => {
                   value={formData.nombre_usuario}
                   onChange={handleChange}
                   required
-                  className="pl-10 block w-full border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="Usuario"
+                  className={`pl-10 block w-full border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 ${
+                    fieldErrors.nombre_usuario ? 'border-red-500' : ''
+                  }`}
+                  placeholder="Usuario (solo letras, máx. 10)"
                 />
               </div>
+              {fieldErrors.nombre_usuario && (
+                <p className="mt-1 text-sm text-red-600">{fieldErrors.nombre_usuario}</p>
+              )}
             </div>
 
             {/* Correo Electrónico */}
@@ -213,7 +317,7 @@ const Register = () => {
               </div>
             </div>
 
-            {/* Teléfono (Opcional) */}
+            {/* Teléfono */}
             <div>
               <label className="block text-sm font-medium text-gray-700">
                 Teléfono
@@ -223,17 +327,19 @@ const Register = () => {
                   <FontAwesomeIcon icon={faPhone} className="text-gray-400" />
                 </div>
                 <input
-                  type="tel"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   name="telefono"
                   value={formData.telefono}
                   onChange={handleChange}
                   className="pl-10 block w-full border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="Número de teléfono (opcional)"
+                  placeholder="Solo números (máx. 10)"
                 />
               </div>
             </div>
 
-            {/* Documento (Opcional) */}
+            {/* Documento */}
             <div>
               <label className="block text-sm font-medium text-gray-700">
                 Documento de Identidad
@@ -244,11 +350,13 @@ const Register = () => {
                 </div>
                 <input
                   type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   name="documento"
                   value={formData.documento}
                   onChange={handleChange}
                   className="pl-10 block w-full border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="Número de documento (opcional)"
+                  placeholder="Solo números (máx. 10)"
                 />
               </div>
             </div>

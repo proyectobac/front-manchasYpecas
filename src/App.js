@@ -24,6 +24,7 @@ import PermisoDasboardEmpleado from "./components/empleados/PerfilEmpleado/index
 import Tienda from "./components/tienda/tienda";
 import ListaVentas from "./components/ventas/index";
 import PaymentStatusPage from './components/PaymentStatusPage';
+import ResultadoPago from './components/pagos/ResultadoPago';
 
 // Nuevos componentes de usuarios y roles
 import ListaUsuarios from "./components/usuarios/ListaUsuarios";
@@ -43,7 +44,8 @@ const App = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/tienda" element={<Tienda />} />
-            <Route path="/payment-status" element={<PaymentStatusPage />} /> {/* Movida fuera de las rutas protegidas */}
+            <Route path="/payment-status" element={<PaymentStatusPage />} />
+            <Route path="/resultado-pago/:referencia" element={<ResultadoPago />} />
 
             {/* Rutas Protegidas */}
             <Route element={<ProtectedRoute />}>

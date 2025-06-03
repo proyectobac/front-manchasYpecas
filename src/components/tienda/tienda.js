@@ -534,6 +534,14 @@ const TiendaCliente = () => {
         const showStockWarning = producto.stock > 0 && producto.stock <= STOCK_THRESHOLD;
         const isOutOfStock = producto.stock <= 0;
 
+        // Determinar el estilo del botón basado en el estado
+        const getButtonStyle = () => {
+            if (isOutOfStock) return 'bg-gray-400 cursor-not-allowed';
+            if (isInCart && !canAddToCart) return 'bg-yellow-500 cursor-not-allowed';
+            if (isInCart) return 'bg-green-600 hover:bg-green-700'; // Verde para "Añadir Otro"
+            return 'bg-indigo-600 hover:bg-indigo-700'; // Color original para primer añadido
+        };
+
         return (
             <div key={producto.id_producto} className="bg-white rounded-xl overflow-hidden shadow-lg border flex flex-col transform transition duration-300 hover:shadow-xl hover:-translate-y-1.5">
                 <div className="relative h-52 w-full bg-gray-50 group">
@@ -549,8 +557,9 @@ const TiendaCliente = () => {
                     <p className="text-2xl font-extrabold text-gray-900 mb-5">{formatCurrency(producto.precioVenta)}</p>
                     <div className="mt-auto pt-4 border-t border-gray-100">
                         <button
-                            onClick={() => addToCart(producto)} disabled={isOutOfStock || !canAddToCart}
-                            className={`w-full text-white font-bold py-2.5 px-4 rounded-lg transition shadow-md ${isOutOfStock ? 'bg-gray-400 cursor-not-allowed' : (isInCart && !canAddToCart ? 'bg-yellow-500 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700')} disabled:opacity-60`}
+                            onClick={() => addToCart(producto)} 
+                            disabled={isOutOfStock || !canAddToCart}
+                            className={`w-full text-white font-bold py-2.5 px-4 rounded-lg transition shadow-md ${getButtonStyle()} disabled:opacity-60`}
                         >
                             {isOutOfStock ? 'Agotado' : (isInCart && !canAddToCart ? 'Máximo en Carrito' : (isInCart ? 'Añadir Otro' : 'Añadir al Carrito'))}
                         </button>

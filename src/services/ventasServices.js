@@ -79,21 +79,46 @@ const VentasService = {
     consultarEstadoPagoPorReferencia: async (referencia) => {
         const token = localStorage.getItem('token');
         try {
+            // Asegúrate que la URL es la correcta, según tu API es /api/pagos/estado/:referencia
+            // o /api/pagos/resultado-pago/:referencia. Usa la que implementa la lógica
+            // de devolver el objeto 'pago' completo.
+            // Voy a asumir que '/api/pagos/estado/:referencia' es la que devuelve el JSON que me mostraste.
             const response = await axios.get(`${API_BASE_URL}/api/pagos/estado/${referencia}`, {
                 headers: {
                     'Content-Type': 'application/json',
                     ...(token && { 'Authorization': `Bearer ${token}` })
                 }
             });
+
+            console.log('Respuesta del backend (VentasService):', response.data);
+
+            // Simplemente devuelve la data del backend.
+            // El backend ya debería estar enviando { success: true, pago: { ... } }
+            // o { success: false, error: "mensaje" }
             return response.data;
+
         } catch (error) {
-            console.error('Error al consultar estado del pago:', error.response?.data || error.message);
-            const errorMessage = error.response?.data?.error ||
-                error.response?.data?.msg ||
-                error.response?.data?.message ||
-                'Error al obtener el estado del pago.';
-            return { success: false, error: errorMessage, pago: null };
+            console.error('Error en VentasService.consultarEstadoPagoPorReferencia:', error.response?.data || error.message || error);
+            // Devuelve un objeto de error consistente si la llamada axios falla
+            return {
+                success: false,
+                error: error.response?.data?.error || 'Error de red o al conectar con el servidor.',
+                // Puedes añadir el estado original si el servidor lo envió antes del error de red
+                estado: error.response?.data?.pago?.estado || error.response?.data?.estado || 'ERROR_SERVICIO'
+            };
         }
+    },
+
+    // Helper para obtener mensajes según el estado
+    obtenerMensajeEstado: (estado) => {
+        const mensajes = {
+            'PENDIENTE': 'El pago está siendo procesado. Por favor espere...',
+            'APROBADO': '¡Pago exitoso! Su compra ha sido procesada.',
+            'RECHAZADO': 'El pago fue rechazado por la entidad bancaria.',
+            'ERROR': 'Ocurrió un error durante el procesamiento del pago.',
+            'ANULADO': 'El pago fue anulado.',
+        };
+        return mensajes[estado] || 'Estado desconocido';
     },
 
     // Asegúrate de tener este método (o uno similar) si `PaymentStatusPage` lo usa

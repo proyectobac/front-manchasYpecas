@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
     FaSearch,
     FaFilter,
@@ -12,12 +13,16 @@ import {
     FaBox,
     FaUser,
     FaMapMarkerAlt,
-    FaPhone
+    FaPhone,
+    FaSpinner
 } from 'react-icons/fa';
 import VentasService from '../../services/ventasServices';
 import * as XLSX from 'xlsx';
+import Swal from 'sweetalert2';
 
 const Ventas = () => {
+    const { referencia } = useParams();
+    const navigate = useNavigate();
     const [ventas, setVentas] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -26,10 +31,88 @@ const Ventas = () => {
     const [fechaFin, setFechaFin] = useState('');
     const [estadoFiltro, setEstadoFiltro] = useState('');
     const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
+    const [estadoPago, setEstadoPago] = useState(null);
+    const [consultandoPago, setConsultandoPago] = useState(false);
 
     useEffect(() => {
-        cargarVentas();
-    }, []);
+        if (referencia) {
+            consultarEstadoPago(referencia);
+        } else {
+            cargarVentas();
+        }
+    }, [referencia]);
+
+    const consultarEstadoPago = async (ref) => {
+        try {
+            setConsultandoPago(true);
+            console.log('Consultando estado del pago para referencia:', ref);
+            const resultado = await VentasService.consultarEstadoPagoPorReferencia(ref);
+            console.log('Resultado de la consulta:', resultado);
+
+            if (resultado.success && resultado.datosCompra) {
+                setEstadoPago({ ...resultado.datosCompra, estado: 'APROBADO' });
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Pago Exitoso!',
+                    text: 'Tu compra ha sido procesada correctamente',
+                    timer: 3000,
+                    showConfirmButton: false
+                }).then(() => {
+                    cargarVentas(); // Recargar la lista de ventas
+                });
+            } else {
+                const mensajeEstado = resultado.mensaje || 'El pago no pudo ser procesado';
+                const detallesEstado = resultado.detalles ? 
+                    `\nMonto: ${resultado.detalles.monto/100} COP\nFecha: ${new Date(resultado.detalles.fecha_creacion).toLocaleString()}` : '';
+
+                if (resultado.estado === 'PENDIENTE') {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Procesando Pago',
+                        text: mensajeEstado,
+                        showConfirmButton: false,
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    // Consultar nuevamente en 5 segundos
+                    setTimeout(() => consultarEstadoPago(ref), 5000);
+                    return;
+                }
+
+                setEstadoPago({ estado: resultado.estado, mensaje: mensajeEstado, detalles: resultado.detalles });
+                await Swal.fire({
+                    icon: 'error',
+                    title: 'Estado del Pago',
+                    text: mensajeEstado,
+                    footer: detallesEstado ? `<small>${detallesEstado}</small>` : '',
+                    confirmButtonText: 'Volver a la lista',
+                    showCancelButton: true,
+                    cancelButtonText: 'Intentar nuevamente'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        navigate('/ventas');
+                    } else if (result.dismiss === Swal.DismissReason.cancel) {
+                        consultarEstadoPago(ref);
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error al consultar el pago:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudo obtener la información del pago',
+                confirmButtonText: 'Volver a la lista',
+                footer: '<small>Si el problema persiste, por favor contacta a soporte</small>'
+            }).then(() => {
+                navigate('/ventas');
+            });
+        } finally {
+            setConsultandoPago(false);
+        }
+    };
 
     const cargarVentas = async () => {
         try {
@@ -104,6 +187,19 @@ const Ventas = () => {
         
         return coincideFiltro && coincideEstado && coincideFechas;
     });
+
+    if (consultandoPago) {
+        return (
+            <div className="flex justify-center items-center min-h-screen bg-gray-100">
+                <div className="text-center p-8 bg-white rounded-lg shadow-lg">
+                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                    <h2 className="text-xl font-semibold text-gray-800 mb-2">Procesando tu pago</h2>
+                    <p className="text-gray-600">Por favor, espera mientras verificamos el estado de tu transacción...</p>
+                    <p className="text-sm text-gray-500 mt-4">Referencia: {referencia}</p>
+                </div>
+            </div>
+        );
+    }
 
     if (loading) {
         return (
